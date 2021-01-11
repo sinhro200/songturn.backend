@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: ${jdbc.url:jdbc:postgresql://localhost:5432/songturn}
+    username: ${jdbc.username:sinhro}
+    password: ${jdbc.password:1234}
+    driver-class-name: ${jdbc.driver_class_name:org.postgresql.Driver}
+    initialization-mode: always # ???
+  jpa:
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+  mail:
+    host: 'smtp.gmail.com'
+    port: 587
+    username: ${mail.user}
+    password: ${mail.password}
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            require: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+logging:
+  level:
+    root : info
+    web : debug
+    sql : info
+    org.springframework.security: info
+    org.hibernate.SQL: INFO
+
+    com.sinhro:
+      songturn:
+        backend: info
+
