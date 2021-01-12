@@ -1,5 +1,6 @@
 package com.sinhro.songturn.backend.service
 
+import com.sinhro.songturn.backend.filter.CustomUserDetails
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.backend.pojos.ConfirmationTokenPojo
@@ -8,6 +9,7 @@ import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.repository.UserRepository
 import com.sinhro.songturn.rest.core.CommonException
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 
@@ -93,16 +95,37 @@ class UserService @Autowired constructor(
         )
     }
 
+    fun findByAnyAndCheckPass(
+            anyCred: String,
+            pass: String
+    ): UserPojo {
+        var userFound = false
+        findByLogin(anyCred)?.let {
+            userFound = true
+            if (isPassCorrect(it,pass))
+                return it
+        }
+        findByEmail(anyCred)?.let {
+            userFound = true
+            if (isPassCorrect(it,pass))
+                return it
+        }
+        if (userFound)
+            throw CommonException(CommonError(ErrorCodes.AUTH_PASSWORD_INCORRECT))
+        else
+            throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_FOUND))
+    }
+
     fun findByLogin(login: String): UserPojo? {
         return userRepository.findUserByLogin(login)
     }
 
-    fun findByNickname(nickname: String): UserPojo? {
-        return userRepository.findUserByNickname(nickname)
-    }
-
     fun findByEmail(email: String): UserPojo? {
         return userRepository.findUserByEmail(email)
+    }
+
+    fun findById(id: Int): UserPojo? {
+        return userRepository.findUserById(id)
     }
 
     fun isPassCorrect(user: UserPojo, password: String): Boolean {
@@ -134,6 +157,18 @@ class UserService @Autowired constructor(
         userRepository.validateNewUserData(userPojo)
 
         return userRepository.updateUserData(userPojo)
+    }
+
+    fun currentUser() : UserPojo{
+        val authorizedUserPrincipal = SecurityContextHolder.getContext()
+                .authentication
+                .principal
+        val cud: CustomUserDetails = authorizedUserPrincipal as CustomUserDetails
+        val authorizedUserPojo = findByLogin(cud.username)
+
+        return authorizedUserPojo ?: throw CommonException(
+                CommonError(ErrorCodes.AUTHORIZATION_FAILED),
+                "Cant get current authenticated user.")
     }
 
 }

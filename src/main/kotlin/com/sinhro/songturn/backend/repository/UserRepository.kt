@@ -27,29 +27,24 @@ class UserRepository @Autowired constructor(
     private val tableRole: Role = Role.ROLE
     private val tableConfirmation: ConfirmationToken = ConfirmationToken.CONFIRMATION_TOKEN
 
-    fun validateNewUserData(userPojo: UserPojo) {
-        val userIdByLogin = dsl.select(tableUsers.ID)
-                .from(tableUsers)
-                .where(tableUsers.LOGIN.eq(userPojo.login))
-                .fetchOne()
-                ?.get(tableUsers.ID)
-        if (userIdByLogin != null && userPojo.id != userIdByLogin)
-            throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
-        val userIdByEmail = dsl.select(tableUsers.ID)
-                .from(tableUsers)
-                .where(tableUsers.EMAIL.eq(userPojo.email))
-                .fetchOne()
-                ?.get(tableUsers.ID)
-        if (userIdByEmail != null && userPojo.id != userIdByEmail)
-            throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
+    fun validateNewUserData(newUserPojo: UserPojo) {
+        newUserPojo.login?.let {
+            findUserByLogin(it)?.let { userSameLogAsNewUserLog ->
+                if (userSameLogAsNewUserLog.id != newUserPojo.id)
+                    throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
+            }
+        }
 
-        val userIdByNickname = dsl.select(tableUsers.ID)
-                .from(tableUsers)
-                .where(tableUsers.NICKNAME.eq(userPojo.nickname))
-                .fetchOne()
-                ?.get(tableUsers.ID)
-        if (userIdByNickname != null && userPojo.id != userIdByNickname)
-            throw CommonException(CommonError(ErrorCodes.NICKNAME_IS_USED))
+        newUserPojo.email?.let { newUserEmail ->
+            findUserByEmail(newUserEmail)?.let { userSameEmailAsNewUserEmail ->
+                if (userSameEmailAsNewUserEmail.id != newUserPojo.id) {
+                    //found another user with email the same as new user email
+                    throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
+                }
+            }
+        }
+
+
     }
 
     fun saveUser(userPojo: UserPojo): UserPojo? {
@@ -170,13 +165,6 @@ class UserRepository @Autowired constructor(
                 ?.into(UserPojo::class.java)
     }
 
-    fun findUserByNickname(nickname: String): UserPojo? {
-        return dsl.selectFrom(tableUsers)
-                .where(tableUsers.NICKNAME.eq(nickname))
-                .fetchOne()
-                ?.into(UserPojo::class.java)
-    }
-
     fun findUserByEmail(email: String): UserPojo? {
         return dsl.selectFrom(tableUsers)
                 .where(tableUsers.EMAIL.eq(email))
@@ -240,6 +228,13 @@ class UserRepository @Autowired constructor(
                 .where(
                         tableUsers.ID.eq(userPojo.id))
                 .returning()
+                .fetchOne()
+                ?.into(UserPojo::class.java)
+    }
+
+    fun findUserById(id: Int): UserPojo? {
+        return dsl.selectFrom(tableUsers)
+                .where(tableUsers.ID.eq(id))
                 .fetchOne()
                 ?.into(UserPojo::class.java)
     }

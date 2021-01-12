@@ -6,7 +6,7 @@ CREATE TABLE "role" (
 
 CREATE TABLE "users" (
     "id" SERIAL PRIMARY KEY,
-    "nickname" TEXT UNIQUE NOT NULL,
+    "nickname" TEXT NOT NULL,
     "email" TEXT UNIQUE,           -- NOT NULL
     "login" TEXT NOT NULL UNIQUE,
     "password" TEXT NOT NULL,
@@ -34,8 +34,8 @@ CREATE TABLE "confirmation_token" (
 CREATE TABLE "room" (
     "id" SERIAL PRIMARY KEY,
     "invite" TEXT NOT NULL UNIQUE,
-    "token" TEXT NOT NULL UNIQUE,
-    "title" TEXT NOT NULL,
+    "token" TEXT UNIQUE, -- NOT NULL
+    "title" TEXT NOT NULL UNIQUE,
     "owner_id" INTEGER,
     "rs_priority_rarely_ordering_users" BOOLEAN DEFAULT false NOT NULL,
     "rs_allow_votes" BOOLEAN NOT NULL DEFAULT true,

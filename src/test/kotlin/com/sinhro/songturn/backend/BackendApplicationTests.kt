@@ -4,7 +4,7 @@ import com.sinhro.songturn.rest.request_response.RegisterReqData
 import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.validation.Validator
-import com.sinhro.songturn.rest.validation.ValidatorResult
+import com.sinhro.songturn.rest.validation.ValidationResult
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -53,9 +53,9 @@ class BackendApplicationTests {
 		val result = validator.validate(obj)
 
 		assert((result["login"] ?: error("Result dont contains login"))
-				.contains(ValidatorResult.MinLengthError) &&
+				.contains(ValidationResult.MinLengthError) &&
 				(result["password"] ?: error("Result dont contains password"))
-						.contains(ValidatorResult.MinLengthError)
+						.contains(ValidationResult.MinLengthError)
 		)
 		print("____________________________Success")
 	}

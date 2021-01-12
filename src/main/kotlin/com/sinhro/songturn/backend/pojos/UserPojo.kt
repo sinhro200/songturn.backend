@@ -8,6 +8,7 @@ class UserPojo(
         var id: Int? = null,
         var login: String? = null,
         var password: String? = null,
+        var encodedPassword: String? = null,
         var email: String? = null,
         var role_id: Int? = null,
         var first_name: String? = null,
@@ -31,12 +32,12 @@ class UserPojo(
             nickname: String?,
             email: String?,
             login: String?,
-            password: String?,
+            decodedPassword: String?,
             role_id: Int?,
             first_name: String?,
             last_name: String?,
             isVerified: Boolean?
-    ) : this(id, login, password, email, role_id, first_name, last_name, nickname, isVerified)
+    ) : this(id, login,"", decodedPassword, email, role_id, first_name, last_name, nickname, isVerified)
 
     companion object {
         fun toFullUserInfo(userPojo: UserPojo): FullUserInfo {

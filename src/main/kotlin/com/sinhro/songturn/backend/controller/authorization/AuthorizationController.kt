@@ -21,23 +21,33 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/login")
 class AuthorizationController @Autowired constructor(
         private val userService: UserService,
-        private val jwtAuthProvider: JwtAuthProvider,
-        private val passwordEncoder: PasswordEncoder
+        private val jwtAuthProvider: JwtAuthProvider
 ) {
     @PostMapping
     fun auth(@RequestBody request: CommonRequest<AuthReqData>)
             : CommonResponse<AuthRespBody> {
-        if (request.data == null || request.data?.login.isNullOrEmpty() || request.data?.password.isNullOrEmpty())
-            throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Wrong request"))
-        val userPojo = userService.findByLogin(request.data!!.login!!)
-                ?: throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_FOUND))
-        if (!passwordEncoder.matches(request.data!!.password, userPojo.password))
-            throw CommonException(CommonError(ErrorCodes.AUTH_PASSWORD_INCORRECT, "Password incorrect"))
-        if (!userPojo.isVerified!!)
-            throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_VERIFIED, "User not verified"))
+        request.data?.let { req ->
+            if (req.login.isNullOrEmpty() || req.password.isNullOrEmpty())
+                throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Wrong request"))
+            val log = req.login!!
+            val pass = req.password!!
 
-        val token = jwtAuthProvider.generateToken(userPojo.login!!)
-        val ui = UserPojo.toFullUserInfo(userPojo)
-        return CommonResponse.buildSuccess(AuthRespBody(ui, token))
+            val userPojo = userService.findByAnyAndCheckPass(log, pass)
+            userPojo.isVerified?.let {
+                if (!it)
+                    throw CommonException(CommonError(
+                            ErrorCodes.AUTH_USER_NOT_VERIFIED,
+                            "User not verified")
+                    )
+            }
+
+            val token = jwtAuthProvider.generateToken(userPojo.login!!)
+            val ui = UserPojo.toFullUserInfo(userPojo)
+            return CommonResponse.buildSuccess(AuthRespBody(ui, token))
+        }
+        throw CommonException(CommonError(
+                ErrorCodes.REQUEST_DATA_EXC,
+                "Empty req data")
+        )
     }
 }

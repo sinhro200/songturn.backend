@@ -2,6 +2,9 @@ package com.sinhro.songturn.backend.filter
 
 import com.sinhro.songturn.backend.providers.JwtAuthProvider
 import com.sinhro.songturn.backend.service.CustomUserDetailsService
+import com.sinhro.songturn.rest.ErrorCodes
+import com.sinhro.songturn.rest.core.CommonError
+import com.sinhro.songturn.rest.core.CommonException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
@@ -31,12 +34,20 @@ class JwtFilter : GenericFilterBean() {
                 val userLogin: String = jwtAuthProvider.getLoginFromToken(token)
                 val customUserDetails: CustomUserDetails? =
                         customUserDetailsService.loadUserByUsername(userLogin)
-                customUserDetails?.let{
+                if (customUserDetails == null) {
+                    throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
+                }else{
+                    val auth = UsernamePasswordAuthenticationToken(
+                            customUserDetails, null, customUserDetails.authorities
+                    )
+                    SecurityContextHolder.getContext().authentication = auth
+                }
+                /*customUserDetails?.let{
                     val auth = UsernamePasswordAuthenticationToken(
                             customUserDetails, null, it.getAuthorities()
                     )
                     SecurityContextHolder.getContext().authentication = auth
-                }
+                }*/
 
             }
         }

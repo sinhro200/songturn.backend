@@ -12,7 +12,7 @@ import com.sinhro.songturn.backend.service.EmailSenderService
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.validation.Validator
-import com.sinhro.songturn.rest.validation.ValidatorResult
+import com.sinhro.songturn.rest.validation.ValidationResult
 import org.jooq.exception.DataAccessException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -47,13 +47,10 @@ class RegisterController @Autowired constructor(
             @RequestBody registrationRequest: CommonRequest<RegisterReqData>
     ): CommonResponse<RegisterRespBody> {
         registrationRequest.data?.let {
-            val validationErrors: Map<String, List<ValidatorResult>> =
+            val validationErrors: Map<String, List<ValidationResult>> =
                     validator
                             .validate(it)
-                            .filter {
-                                entry ->
-                                entry.value.isNotEmpty()
-                            }
+                            .resultForErrorFields()
             if (validationErrors.isNotEmpty()){
                 throw CommonException(
                         CommonError(
