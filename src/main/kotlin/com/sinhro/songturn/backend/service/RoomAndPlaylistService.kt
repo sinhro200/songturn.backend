@@ -29,6 +29,13 @@ class RoomAndPlaylistService @Autowired constructor(
     @Value("\${room_count_for_one_user}")
     private var countRoomsUserOwns: Int = 1
 
+    fun setListener(playlistPojo: PlaylistPojo, userId: Int): PlaylistPojo {
+
+        return roomPlaylistRepository.setListenerId(
+                playlistPojo, userId
+        )
+    }
+
     fun createRoom(title: String, ownerPojo: UserPojo): RoomPojo {
         ownerPojo.id?.let {
             if (roomPlaylistRepository.roomsByUserId(it).count() >= countRoomsUserOwns)
@@ -49,7 +56,7 @@ class RoomAndPlaylistService @Autowired constructor(
 
         roomPlaylistRepository.savePlaylist(
                 PlaylistPojo(
-                        title = "${title}_playlist",
+                        title = defaultPlaylistName(title),
                         description = "",
                         room_id = roomPojo.id,
                         listener_id = ownerPojo.id
@@ -81,13 +88,13 @@ class RoomAndPlaylistService @Autowired constructor(
 
     fun getRoomFromToken(roomToken: String): RoomPojo? {
         val id: String = jwtRoomProvider.getRoomIdFromToken(roomToken)
-        return roomPlaylistRepository.findById(Integer.valueOf(id))
+        return roomPlaylistRepository.findRoomById(Integer.valueOf(id))
     }
 
     fun defaultRoom(title: String, ownerPojo: UserPojo): RoomPojo {
         return RoomPojo(
                 title = title,
-                ownerId = ownerPojo.id,
+                owner_id = ownerPojo.id,
                 invite = createDefaultEmptyInvite(),
                 rs_allow_votes = false,
                 rs_priority_rarely_ordering_users = false,
@@ -107,5 +114,17 @@ class RoomAndPlaylistService @Autowired constructor(
 
     private fun createDefaultEmptyInvite(): String {
         return createEmptyInvite(invChars, invLength)
+    }
+
+    fun defaultPlaylistName(roomTitle: String): String {
+        return "${roomTitle}_playlist"
+    }
+
+    fun getPlaylists(roomPojo: RoomPojo, playlistTitle: String? = null)
+            : MutableList<PlaylistPojo> {
+        roomPojo.id?.let {
+            return roomPlaylistRepository.getPlaylistsByRoom(it, playlistTitle)
+        }
+        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room dont has id")
     }
 }

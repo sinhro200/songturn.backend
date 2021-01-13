@@ -35,7 +35,7 @@ CREATE TABLE "room" (
     "id" SERIAL PRIMARY KEY,
     "invite" TEXT NOT NULL UNIQUE,
     "token" TEXT UNIQUE, -- NOT NULL
-    "title" TEXT NOT NULL UNIQUE,
+    "title" TEXT NOT NULL , -- UNIQUE
     "owner_id" INTEGER,
     "rs_priority_rarely_ordering_users" BOOLEAN DEFAULT false NOT NULL,
     "rs_allow_votes" BOOLEAN NOT NULL DEFAULT true,

@@ -2,7 +2,6 @@ package com.sinhro.songturn.backend.repository
 
 import com.sinhro.songturn.backend.pojos.PlaylistPojo
 import com.sinhro.songturn.backend.pojos.RoomPojo
-import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.tables.Playlist
 import com.sinhro.songturn.backend.tables.Room
 import com.sinhro.songturn.rest.ErrorCodes
@@ -20,6 +19,34 @@ class RoomPlaylistRepository @Autowired constructor(
 
     val tableRoom: Room = Room.ROOM
     val tablePlaylist: Playlist = Playlist.PLAYLIST
+
+    fun setListenerId(playlistPojo: PlaylistPojo, userId: Int): PlaylistPojo {
+        return dsl.update(tablePlaylist)
+                .set(tablePlaylist.LISTENER_ID, userId)
+                .where(tablePlaylist.ID.eq(playlistPojo.id))
+                .returning()
+                .fetchOne()
+                ?.into(PlaylistPojo::class.java)
+                ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Cant update playlist listener")
+
+    }
+
+    fun clearListenerId(playlistPojo: PlaylistPojo): PlaylistPojo {
+        val dbPlaylist = dsl.selectFrom(tablePlaylist)
+                .where(tablePlaylist.ID.eq(playlistPojo.id))
+                .fetchOne()
+                ?.into(PlaylistPojo::class.java)
+        dbPlaylist?.let { foundedPlaylist ->
+            dsl.update(tablePlaylist)
+                    .setNull(tablePlaylist.LISTENER_ID)
+                    .where(tablePlaylist.ID.eq(foundedPlaylist.id))
+                    .returning()
+                    .fetchOne()
+                    ?.into(PlaylistPojo::class.java)
+                    ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Cant update playlist listener")
+        }
+        throw CommonException(CommonError(ErrorCodes.PLAYLIST_NOT_FOUND))
+    }
 
     fun savePlaylist(playlistPojo: PlaylistPojo): PlaylistPojo {
         return dsl.insertInto(tablePlaylist)
@@ -56,7 +83,7 @@ class RoomPlaylistRepository @Autowired constructor(
                         roomPojo.invite,
                         roomPojo.token,
                         roomPojo.title,
-                        roomPojo.ownerId,
+                        roomPojo.owner_id,
                         roomPojo.rs_priority_rarely_ordering_users,
                         roomPojo.rs_allow_votes,
                         roomPojo.rs_song_owners_visible
@@ -75,9 +102,9 @@ class RoomPlaylistRepository @Autowired constructor(
                 ?.into(RoomPojo::class.java)
     }
 
-    fun findById(id: Int): RoomPojo? {
+    fun findRoomById(roomId: Int): RoomPojo? {
         return dsl.selectFrom(tableRoom)
-                .where(tableRoom.ID.eq(id))
+                .where(tableRoom.ID.eq(roomId))
                 .fetchOne()
                 ?.into(RoomPojo::class.java)
     }
@@ -98,7 +125,7 @@ class RoomPlaylistRepository @Autowired constructor(
                                 roomPojo.invite,
                                 roomPojo.token,
                                 roomPojo.title,
-                                roomPojo.ownerId,
+                                roomPojo.owner_id,
                                 roomPojo.rs_priority_rarely_ordering_users,
                                 roomPojo.rs_allow_votes,
                                 roomPojo.rs_song_owners_visible
@@ -136,11 +163,24 @@ class RoomPlaylistRepository @Autowired constructor(
     fun removePlaylistsByRoom(roomId: Int, playlistTitle: String?)
             : MutableList<PlaylistPojo> {
         var whereCondition = tablePlaylist.ROOM_ID.eq(roomId)
-        if (playlistTitle!=null)
+        if (playlistTitle != null)
             whereCondition = whereCondition.and(tablePlaylist.TITLE.eq(playlistTitle))
         return dsl.deleteFrom(tablePlaylist)
                 .where(whereCondition)
                 .returning()
+                .fetch()
+                .into(PlaylistPojo::class.java)
+    }
+
+    fun getPlaylistsByRoom(roomId: Int, playlistTitle: String? = null)
+            : MutableList<PlaylistPojo> {
+        var whereCondition = tablePlaylist.ROOM_ID.eq(roomId)
+        playlistTitle?.let{
+            whereCondition = whereCondition.and(tablePlaylist.TITLE.eq(it))
+        }
+
+        return dsl.selectFrom(tablePlaylist)
+                .where(whereCondition)
                 .fetch()
                 .into(PlaylistPojo::class.java)
     }

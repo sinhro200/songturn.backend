@@ -1,5 +1,6 @@
 package com.sinhro.songturn.backend.controller.room
 
+import com.sinhro.songturn.backend.pojos.PlaylistPojo
 import com.sinhro.songturn.backend.pojos.RoomPojo
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
 import com.sinhro.songturn.backend.service.UserService
@@ -10,19 +11,17 @@ import com.sinhro.songturn.rest.core.CommonRequest
 import com.sinhro.songturn.rest.core.CommonResponse
 import com.sinhro.songturn.rest.request_response.*
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.stream.Collectors
 
 @RestController
+@RequestMapping("/room")
 class RoomController @Autowired constructor(
         private val roomAndPlaylistService: RoomAndPlaylistService,
         private val userService: UserService
 ) {
 
-    @GetMapping("/room/myrooms")
+    @GetMapping("/myrooms")
     fun myRooms(): CommonResponse<OwnedRoomsRespBody> {
         val currentUser = userService.currentUser()
         val userRooms = roomAndPlaylistService.userRooms(currentUser)
@@ -34,7 +33,7 @@ class RoomController @Autowired constructor(
         ))
     }
 
-    @PostMapping("/room/create")
+    @PostMapping("/create")
     fun createRoom(
             @RequestBody req: CommonRequest<CreateRoomReqData>
     ): CommonResponse<CreateRoomRespBody> {
@@ -50,7 +49,7 @@ class RoomController @Autowired constructor(
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
 
-    @PostMapping("/room/remove")
+    @PostMapping("/remove")
     fun removeRoom(
             @RequestBody req: CommonRequest<RemoveRoomReqData>
     ): CommonResponse<RemoveRoomRespBody> {
@@ -66,7 +65,7 @@ class RoomController @Autowired constructor(
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
 
-    @PostMapping("/room/enter")
+    @PostMapping("/enter")
     fun enterRoom(
             @RequestBody req: CommonRequest<EnterRoomReqData>
     ): CommonResponse<EnterRoomRespBody> {
@@ -84,8 +83,55 @@ class RoomController @Autowired constructor(
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
 
-    @PostMapping("/room/change")
+    @PostMapping("/change")
     fun changeRoom() {
-
+        //ToDo
     }
+
+    @PostMapping("/playlists")
+    fun playlistsInRoom(
+            @RequestBody req: CommonRequest<GetPlaylistsReqData>
+    ): CommonResponse<GetPlaylistsRespBody> {
+        req.data?.let { data ->
+            data.roomToken?.let {
+                roomAndPlaylistService.getRoomFromToken(it)?.let { room ->
+                    val playlists = roomAndPlaylistService.getPlaylists(
+                            room,
+                            roomAndPlaylistService.defaultPlaylistName(
+                                    room.title ?: throw CommonException(
+                                            CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
+                                            "Room dont has title"
+                                    )
+                            )
+                    )
+                    return CommonResponse.buildSuccess(
+                            GetPlaylistsRespBody(
+                                    playlists.stream()
+                                            .map { PlaylistPojo.toPlaylistInfo(it) }
+                                            .collect(Collectors.toList())
+                            )
+                    )
+                }
+                throw CommonException(CommonError(ErrorCodes.ROOM_NOT_FOUND))
+
+            }
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
+
+    @PostMapping("/addPlaylist")
+    fun addPlaylist() {
+        //ToDO
+    }
+
+    @PostMapping("/removePlaylist")
+    fun removePlaylist() {
+        //ToDO
+    }
+
+    @PostMapping("/changePlaylist")
+    fun changePlaylist() {
+        //ToDO
+    }
+
 }

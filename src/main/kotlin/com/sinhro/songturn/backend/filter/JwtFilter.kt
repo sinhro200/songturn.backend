@@ -29,25 +29,19 @@ class JwtFilter : GenericFilterBean() {
             filterChain: FilterChain
     ) {
         val tokenFromRequest = getTokenFromRequest(servletRequest as HttpServletRequest)
-        tokenFromRequest?.let{token->
+        tokenFromRequest?.let { token ->
             if (jwtAuthProvider.validateToken(token)) {
                 val userLogin: String = jwtAuthProvider.getLoginFromToken(token)
                 val customUserDetails: CustomUserDetails? =
                         customUserDetailsService.loadUserByUsername(userLogin)
                 if (customUserDetails == null) {
                     throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
-                }else{
+                } else {
                     val auth = UsernamePasswordAuthenticationToken(
                             customUserDetails, null, customUserDetails.authorities
                     )
                     SecurityContextHolder.getContext().authentication = auth
                 }
-                /*customUserDetails?.let{
-                    val auth = UsernamePasswordAuthenticationToken(
-                            customUserDetails, null, it.getAuthorities()
-                    )
-                    SecurityContextHolder.getContext().authentication = auth
-                }*/
 
             }
         }
@@ -60,7 +54,7 @@ class JwtFilter : GenericFilterBean() {
         return if (!bearer.isNullOrEmpty() && bearer.startsWith("Bearer ")) {
             bearer.substring(7)
         } else null
-            //throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
+        //throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
     }
 
     companion object {
