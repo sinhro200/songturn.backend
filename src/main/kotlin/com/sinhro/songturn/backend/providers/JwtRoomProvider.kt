@@ -47,7 +47,7 @@ class JwtRoomProvider {
     fun getRoomIdFromToken(token: String): String {
         try {
             val claims = Jwts.parserBuilder()
-                    .setSigningKey(jwtSecret)
+                    .setSigningKey(secretKey)
                     .build()
                     .parseClaimsJws(token)
                     .body
