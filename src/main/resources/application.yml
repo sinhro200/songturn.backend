@@ -9,6 +9,12 @@ spring:
     generate-ddl: false
     hibernate:
       ddl-auto: none
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+    property-naming-strategy: SNAKE_CASE
+#    default-property-inclusion: non_null
   mail:
     host: 'smtp.gmail.com'
     port: 587
@@ -27,9 +33,9 @@ spring:
           writetimeout: 5000
 logging:
   level:
-    root : info
-    web : debug
-    sql : info
+    root: info
+    web: debug
+    sql: info
     org.springframework.security: info
     org.hibernate.SQL: INFO
 

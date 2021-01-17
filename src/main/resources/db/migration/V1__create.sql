@@ -14,6 +14,7 @@ CREATE TABLE "users" (
     "first_name" TEXT ,                     -- NOT NULL
     "last_name" TEXT ,                      -- NOT NULL
     "is_verified" BOOLEAN NOT NULL DEFAULT FALSE,
+    "room_id" INTEGER,
     CONSTRAINT "users_role_id-role_id"
         FOREIGN KEY ("role_id") REFERENCES "role"("id")
             ON DELETE RESTRICT
@@ -46,6 +47,24 @@ CREATE TABLE "room" (
             ON UPDATE CASCADE
 );
 
+CREATE TABLE "room_action" (
+    "id" SERIAL PRIMARY KEY,
+    "user_id" INTEGER NOT NULL,
+    "room_id" INTEGER NOT NULL,
+    "action_type" INTEGER NOT NULL,
+    "is_room_changed" BOOLEAN NOT NULL default false,
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- PRIMARY KEY(room_id, user_id, action_type, is_room_action)
+     CONSTRAINT "room_id-room_id"
+        FOREIGN KEY ("room_id") REFERENCES "room"("id")
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE,
+    CONSTRAINT "user_id-user_id"
+        FOREIGN KEY ("user_id") REFERENCES "users"("id")
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE
+);
+
 CREATE TABLE "playlist" (
     "id" SERIAL PRIMARY KEY,
     "title" TEXT NOT NULL,
@@ -69,11 +88,12 @@ CREATE TABLE "song" (
     "title" TEXT NOT NULL,
     "link" TEXT NOT NULL,
     "duration" INTEGER NOT NULL,
-    "ordered_at" TIMESTAMP NOT NULL,
+    "ordered_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expires_at" TIMESTAMP DEFAULT NULL,
     "playlist_id" INTEGER NOT NULL,
     "user_id" INTEGER DEFAULT NULL,
     "rating" INTEGER DEFAULT 0 NOT NULL,
+    "link_from_user" TEXT NOT NULL,
     CONSTRAINT "song_playlist_id-playlist_id"
         FOREIGN KEY ("playlist_id") REFERENCES "playlist"("id")
             ON DELETE CASCADE

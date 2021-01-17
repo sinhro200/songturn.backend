@@ -238,4 +238,31 @@ class UserRepository @Autowired constructor(
                 .fetchOne()
                 ?.into(UserPojo::class.java)
     }
+
+    fun setUserInRoom(userId: Int, roomId: Int): UserPojo? {
+        return dsl.update(tableUsers)
+                .set(
+                        tableUsers.ROOM_ID,
+                        roomId)
+                .where(tableUsers.ID.eq(userId))
+                .returning()
+                .fetchOne()
+                ?.into(UserPojo::class.java)
+    }
+
+    fun setUserNotInRoom(userId: Int): UserPojo? {
+        return dsl.update(tableUsers)
+                .setNull(tableUsers.ROOM_ID)
+                .where(tableUsers.ID.eq(userId))
+                .returning()
+                .fetchOne()
+                ?.into(UserPojo::class.java)
+    }
+
+    fun getUsersInRoom(roomId: Int): List<UserPojo> {
+        return dsl.selectFrom(tableUsers)
+                .where(tableUsers.ID.eq(roomId))
+                .fetch()
+                .into(UserPojo::class.java)
+    }
 }

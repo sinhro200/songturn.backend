@@ -10,6 +10,7 @@ import com.sinhro.songturn.backend.jooq.extractCommonErrorMessage
 import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.service.EmailSenderService
 import com.sinhro.songturn.backend.service.UserService
+import com.sinhro.songturn.backend.tables.pojos.Users
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.validation.Validator
 import com.sinhro.songturn.rest.validation.ValidationResult
@@ -32,9 +33,11 @@ class RegisterController @Autowired constructor(
     private var shouldConfirm: Boolean = false
 
     private fun RegisterReqData.toUserPojo(): UserPojo {
-        val user = UserPojo()
+        Users()
+        val user = UserPojo(
+
+        )
         user.login = this.login
-        user.password = this.password
         user.email = this.email
         user.nickname = this.nickname
         user.first_name = this.firstName
@@ -64,7 +67,11 @@ class RegisterController @Autowired constructor(
 
             val userPojo = it.toUserPojo()
             try {
-                userService.registerUser(userPojo, shouldConfirm)?.let {
+                userService.registerUser(
+                        userPojo,
+                        it.password,
+                        shouldConfirm
+                )?.let {
                     if (shouldConfirm) {
                         emailSenderService.sendEmail(confirmationMailBuilder.createConfirmationMail(
                                 it.email

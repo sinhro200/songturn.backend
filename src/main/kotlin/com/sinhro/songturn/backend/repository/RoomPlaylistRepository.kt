@@ -172,16 +172,20 @@ class RoomPlaylistRepository @Autowired constructor(
                 .into(PlaylistPojo::class.java)
     }
 
-    fun getPlaylistsByRoom(roomId: Int, playlistTitle: String? = null)
+    fun getAllPlaylistsInRoom(roomId: Int)
             : MutableList<PlaylistPojo> {
-        var whereCondition = tablePlaylist.ROOM_ID.eq(roomId)
-        playlistTitle?.let{
-            whereCondition = whereCondition.and(tablePlaylist.TITLE.eq(it))
-        }
-
         return dsl.selectFrom(tablePlaylist)
-                .where(whereCondition)
+                .where(tablePlaylist.ROOM_ID.eq(roomId))
                 .fetch()
                 .into(PlaylistPojo::class.java)
+    }
+
+    fun getPlaylistInRoom(roomId: Int, playlistTitle: String)
+            : PlaylistPojo? {
+
+        return dsl.selectFrom(tablePlaylist)
+                .where(tablePlaylist.ROOM_ID.eq(roomId).and(tablePlaylist.TITLE.eq(playlistTitle)))
+                .fetchOne()
+                ?.into(PlaylistPojo::class.java)
     }
 }

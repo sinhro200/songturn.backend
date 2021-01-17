@@ -36,6 +36,12 @@ class RoomAndPlaylistService @Autowired constructor(
         )
     }
 
+    fun removeListener(playlistPojo: PlaylistPojo): PlaylistPojo {
+        return roomPlaylistRepository.clearListenerId(
+                playlistPojo
+        )
+    }
+
     fun createRoom(title: String, ownerPojo: UserPojo): RoomPojo {
         ownerPojo.id?.let {
             if (roomPlaylistRepository.roomsByUserId(it).count() >= countRoomsUserOwns)
@@ -66,6 +72,12 @@ class RoomAndPlaylistService @Autowired constructor(
         return roomPojo
     }
 
+    fun roomUserIn(
+            userPojo: UserPojo
+    ) : RoomPojo? {
+        return userPojo.room_id?.let { roomPlaylistRepository.findRoomById(it) }
+    }
+
     fun userRooms(userPojo: UserPojo): MutableList<RoomPojo> {
         userPojo.id?.let {
             return roomPlaylistRepository.roomsByUserId(it)
@@ -82,13 +94,17 @@ class RoomAndPlaylistService @Autowired constructor(
         throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room owner dont has id")
     }
 
-    fun findByInv(inv: String): RoomPojo? {
-        return roomPlaylistRepository.findByInvite(inv)
+    fun findByInv(inv: String): RoomPojo {
+        return roomPlaylistRepository.findByInvite(inv) ?: throw CommonException(
+                CommonError(ErrorCodes.ROOM_NOT_FOUND)
+        )
     }
 
-    fun getRoomFromToken(roomToken: String): RoomPojo? {
+    fun getRoomFromToken(roomToken: String): RoomPojo {
         val id: String = jwtRoomProvider.getRoomIdFromToken(roomToken)
-        return roomPlaylistRepository.findRoomById(Integer.valueOf(id))
+        return roomPlaylistRepository.findRoomById(Integer.valueOf(id)) ?: throw CommonException(
+                CommonError(ErrorCodes.ROOM_NOT_FOUND)
+        )
     }
 
     fun defaultRoom(title: String, ownerPojo: UserPojo): RoomPojo {
@@ -104,7 +120,7 @@ class RoomAndPlaylistService @Autowired constructor(
 
     private fun createEmptyInvite(chars: CharSequence, length: Int): String {
         var inv: String = rsg.generateString(chars, length)
-        var roomEntity = findByInv(inv)
+        var roomEntity = roomPlaylistRepository.findByInvite(inv)
         while (roomEntity != null) {
             inv = rsg.generateString(chars, length)
             roomEntity = findByInv(inv)
@@ -120,10 +136,18 @@ class RoomAndPlaylistService @Autowired constructor(
         return "${roomTitle}_playlist"
     }
 
-    fun getPlaylists(roomPojo: RoomPojo, playlistTitle: String? = null)
+    fun getAllRoomPlaylists(roomPojo: RoomPojo)
             : MutableList<PlaylistPojo> {
         roomPojo.id?.let {
-            return roomPlaylistRepository.getPlaylistsByRoom(it, playlistTitle)
+            return roomPlaylistRepository.getAllPlaylistsInRoom(it)
+        }
+        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room dont has id")
+    }
+
+    fun getPlaylist(roomPojo: RoomPojo, playlistTitle: String): PlaylistPojo {
+        roomPojo.id?.let {
+            return roomPlaylistRepository.getPlaylistInRoom(it, playlistTitle)?:
+                    throw CommonException(CommonError(ErrorCodes.PLAYLIST_NOT_FOUND))
         }
         throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room dont has id")
     }

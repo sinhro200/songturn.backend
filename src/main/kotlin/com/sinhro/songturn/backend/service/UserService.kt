@@ -5,9 +5,11 @@ import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.backend.pojos.ConfirmationTokenPojo
 import com.sinhro.songturn.backend.pojos.RolePojo
+import com.sinhro.songturn.backend.pojos.RoomPojo
 import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.repository.UserRepository
 import com.sinhro.songturn.rest.core.CommonException
+import com.sinhro.songturn.rest.model.RoomActionType
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -27,7 +29,7 @@ class UserService @Autowired constructor(
 //    private val tableRole: Role = Role.ROLE
 //    private val tableConfirmation: ConfirmationToken = ConfirmationToken.CONFIRMATION_TOKEN
 
-    fun registerUser(userPojo: UserPojo, shouldVerify: Boolean): UserPojo? {
+    fun registerUser(userPojo: UserPojo,decodedPassword : String, shouldVerify: Boolean): UserPojo? {
         userRepository.validateNewUserData(userPojo)
 
         if (shouldVerify)
@@ -102,12 +104,12 @@ class UserService @Autowired constructor(
         var userFound = false
         findByLogin(anyCred)?.let {
             userFound = true
-            if (isPassCorrect(it,pass))
+            if (isPassCorrect(it, pass))
                 return it
         }
         findByEmail(anyCred)?.let {
             userFound = true
-            if (isPassCorrect(it,pass))
+            if (isPassCorrect(it, pass))
                 return it
         }
         if (userFound)
@@ -159,7 +161,31 @@ class UserService @Autowired constructor(
         return userRepository.updateUserData(userPojo)
     }
 
-    fun currentUser() : UserPojo{
+    fun userEnteredRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
+        if (userPojo.id != null && roomPojo.id != null)
+            return userRepository.setUserInRoom(userPojo.id!!, roomPojo.id!!)
+                    ?: throw CommonException(
+                            CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
+                    )
+        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User or room dont has id")
+    }
+
+    fun userLeftRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
+        if (userPojo.id != null && roomPojo.id != null)
+            return userRepository.setUserNotInRoom(userPojo.id!!)
+                    ?: throw CommonException(
+                            CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
+                    )
+        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User or room dont has id")
+    }
+
+    fun usersInRoom(roomPojo: RoomPojo): List<UserPojo> {
+        if (roomPojo.id != null)
+            return userRepository.getUsersInRoom(roomPojo.id!!)
+        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room dont has id")
+    }
+
+    fun currentUser(): UserPojo {
         val authorizedUserPrincipal = SecurityContextHolder.getContext()
                 .authentication
                 .principal

@@ -52,9 +52,9 @@ class UserController @Autowired constructor(
     fun updateMe(
             @RequestBody userInfo: CommonRequest<FullUserInfoReqData>
     ): CommonResponse<FullUserInfoRespBody> {
-        if (userInfo.data == null || userInfo.data!!.fullUserInfo == null)
+        if (userInfo.data == null || userInfo.data!!.userInfo == null)
             throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Request data is null"))
-        val newFullUserInfo = userInfo.data!!.fullUserInfo!!
+        val newFullUserInfo = userInfo.data!!.userInfo!!
 
 
         val authorizedUserPojo: UserPojo = userService.currentUser()
