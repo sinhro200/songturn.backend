@@ -1,18 +1,18 @@
 package com.sinhro.songturn.backend.controller.users
 
+import com.sinhro.songturn.backend.extentions.toFullUserInfo
+import com.sinhro.songturn.backend.extentions.toPublicUserInfo
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonRequest
 import com.sinhro.songturn.rest.core.CommonResponse
-import com.sinhro.songturn.backend.filter.CustomUserDetails
-import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.request_response.FullUserInfoReqData
+import com.sinhro.songturn.rest.model.FullUserInfo
+import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.FullUserInfoRespBody
 import com.sinhro.songturn.rest.request_response.PublicUserInfoRespBody
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -21,59 +21,40 @@ class UserController @Autowired constructor(
 ) {
 
     @GetMapping("/user/{id}")
-    fun getUser(@PathVariable id: Int?) :
-            CommonResponse<PublicUserInfoRespBody>{
+    fun getUser(@PathVariable id: Int?):
+            CommonResponse<PublicUserInfoRespBody> {
         id?.let {
-            val user = userService.findById(id)
-            user?.let {
-                return CommonResponse.buildSuccess(
-                        PublicUserInfoRespBody(UserPojo.toPublicUserInfo(it))
-                )
-            }
-            throw CommonException(CommonError(ErrorCodes.BAD_REQUEST))
+            val user = userService.findById(it)
+                    ?: throw CommonException(CommonError(ErrorCodes.BAD_REQUEST, "User not found"))
+            return CommonResponse.buildSuccess(
+                    PublicUserInfoRespBody(user.toPublicUserInfo())
+            )
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
 
     @GetMapping("/user/me")
-    fun getMe(): CommonResponse<FullUserInfoRespBody> {
-        val principal = SecurityContextHolder.getContext().authentication.principal
-        val cud: CustomUserDetails = principal as CustomUserDetails
-        val ue: UserPojo? = userService.findByLogin(cud.getUsername())
-        ue?.let {
-            return CommonResponse.buildSuccess(
-                    FullUserInfoRespBody(UserPojo.toFullUserInfo(it))
-            )
-        }
-        throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_FOUND))
+    fun getMe(): CommonResponse<FullUserInfo> {
+        return CommonResponse.buildSuccess(
+                userService.currentUser().toFullUserInfo()
+        )
     }
 
     @PostMapping("/user/changeme")
     fun updateMe(
-            @RequestBody userInfo: CommonRequest<FullUserInfoReqData>
-    ): CommonResponse<FullUserInfoRespBody> {
-        if (userInfo.data == null || userInfo.data!!.userInfo == null)
+            @RequestBody userInfo: CommonRequest<RegisterUserInfo>
+    ): CommonResponse<FullUserInfo> {
+        if (userInfo.data == null)
             throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Request data is null"))
-        val newFullUserInfo = userInfo.data!!.userInfo!!
+        val newUserInfo = userInfo.data!!
 
 
-        val authorizedUserPojo: UserPojo = userService.currentUser()
+        val authorizedUserPojo = userService.currentUser()
 
-        if (authorizedUserPojo.id == null)
-            throw CommonException(
-                    CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User found by login ${authorizedUserPojo.login} dont have id")
-        if (newFullUserInfo.id != null && authorizedUserPojo.id != newFullUserInfo.id)
-            throw CommonException(CommonError(
-                    ErrorCodes.AUTH_DONT_HAVE_PERMISSIONS,
-                    "Dont have permissions to change user data"
-            ))
-
-        UserPojo.updateNotEmptyValues(authorizedUserPojo, newFullUserInfo)
-
-        userService.updateUser(authorizedUserPojo)?.let { savedUserPojo ->
-            return CommonResponse(FullUserInfoRespBody(
-                    UserPojo.toFullUserInfo(savedUserPojo)
-            ))
+        userService.updateUser(authorizedUserPojo,newUserInfo)?.let { savedUserPojo ->
+            return CommonResponse(
+                    savedUserPojo.toFullUserInfo()
+            )
         }
         throw CommonException(
                 CommonError(ErrorCodes.INTERNAL_SERVER_EXC,

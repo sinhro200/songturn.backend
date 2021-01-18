@@ -3,17 +3,19 @@ package com.sinhro.songturn.backend.repository
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.backend.jooq.CustomSQLExceptionTranslator
-import com.sinhro.songturn.backend.pojos.ConfirmationTokenPojo
-import com.sinhro.songturn.backend.pojos.RolePojo
-import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.tables.ConfirmationToken
 import com.sinhro.songturn.backend.tables.Role
 import com.sinhro.songturn.backend.tables.Users
+import com.sinhro.songturn.backend.tables.records.ConfirmationTokenRecord
+import com.sinhro.songturn.backend.tables.records.UsersRecord
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
+import com.sinhro.songturn.backend.tables.pojos.ConfirmationToken as ConfirmationTokenPojo
+import com.sinhro.songturn.backend.tables.pojos.Role as RolePojo
 import com.sinhro.songturn.rest.core.CommonException
 import org.jooq.DSLContext
-import org.jooq.impl.DSL.row
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import kotlin.reflect.KFunction1
 
 @Component
 class UserRepository @Autowired constructor(
@@ -27,64 +29,18 @@ class UserRepository @Autowired constructor(
     private val tableRole: Role = Role.ROLE
     private val tableConfirmation: ConfirmationToken = ConfirmationToken.CONFIRMATION_TOKEN
 
-    fun validateNewUserData(newUserPojo: UserPojo) {
-        newUserPojo.login?.let {
-            findUserByLogin(it)?.let { userSameLogAsNewUserLog ->
-                if (userSameLogAsNewUserLog.id != newUserPojo.id)
-                    throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
-            }
-        }
+    fun saveUser(userPojo: UserPojo): UserPojo {
 
-        newUserPojo.email?.let { newUserEmail ->
-            findUserByEmail(newUserEmail)?.let { userSameEmailAsNewUserEmail ->
-                if (userSameEmailAsNewUserEmail.id != newUserPojo.id) {
-                    //found another user with email the same as new user email
-                    throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
-                }
-            }
-        }
-
-
+        val usersRecord = dsl.newRecord(tableUsers)
+        updateUserRecordFieldsFromPojo(usersRecord, userPojo)
+        usersRecord.store()
+        return usersRecord.into(UserPojo::class.java)
     }
 
-    fun saveUser(userPojo: UserPojo): UserPojo? {
-        val res = dsl.insertInto(tableUsers,
-                //tableUsers.ID,
-                tableUsers.NICKNAME,
-                tableUsers.EMAIL,
-                tableUsers.LOGIN,
-                tableUsers.PASSWORD,
-                tableUsers.ROLE_ID,
-                tableUsers.FIRST_NAME,
-                tableUsers.LAST_NAME,
-                tableUsers.IS_VERIFIED
-        )
-                .values(
-                        userPojo.nickname,
-                        userPojo.email,
-                        userPojo.login,
-                        userPojo.password,
-                        userPojo.role_id,
-                        userPojo.first_name,
-                        userPojo.last_name,
-                        userPojo.isVerified
-                )
-                .returning(
-                        tableUsers.ID
-                )
-        //ToDo simplify code around
-//        val fetch = res.fetchOne()?.get(tableUsers.ID)
-        val userId = res.fetch()[0]?.get(tableUsers.ID)
-        return dsl.select(tableUsers.NICKNAME,
-                tableUsers.EMAIL,
-                tableUsers.LOGIN,
-                tableUsers.PASSWORD,
-                tableUsers.ROLE_ID,
-                tableUsers.FIRST_NAME,
-                tableUsers.LAST_NAME,
-                tableUsers.IS_VERIFIED)
-                .from(tableUsers)
-                .where(tableUsers.ID.eq((userId)))
+    fun removeUser(userPojo: UserPojo): UserPojo? {
+        return dsl.deleteFrom(tableUsers)
+                .where(tableUsers.ID.eq(userPojo.id))
+                .returning()
                 .fetchOne()
                 ?.into(UserPojo::class.java)
     }
@@ -100,31 +56,33 @@ class UserRepository @Autowired constructor(
                 )
     }
 
-    fun saveConfirmationToken(confirmationToken: ConfirmationTokenPojo)
+    fun saveConfirmationToken(confirmationTokenPojo: ConfirmationTokenPojo):
+            ConfirmationTokenPojo {
+        val confTokenRecord = dsl.newRecord(tableConfirmation)
+        confTokenRecord.from(confirmationTokenPojo)
+        confTokenRecord.store()
+        return confTokenRecord.into(ConfirmationTokenPojo::class.java)
+    }
+
+    fun removeConfirmationToken(confirmationTokenPojo: ConfirmationTokenPojo)
             : ConfirmationTokenPojo? {
-        return dsl.insertInto(tableConfirmation)
-                .columns(
-                        tableConfirmation.TOKEN,
-                        tableConfirmation.CREATED_DATE,
-                        tableConfirmation.USER_ID)
-                .values(
-                        confirmationToken.token,
-                        confirmationToken.createdDate,
-                        confirmationToken.userId)
+        return dsl.deleteFrom(tableConfirmation)
+                .where(tableConfirmation.ID.eq(confirmationTokenPojo.id))
                 .returning()
                 .fetchOne()
                 ?.into(ConfirmationTokenPojo::class.java)
     }
 
-    fun getConfirmationToken(user: UserPojo): String? {
+
+    fun getConfirmationToken(user: UserPojo): ConfirmationTokenPojo? {
         return dsl.select(tableConfirmation.TOKEN)
                 .from(tableConfirmation)
                 .where(tableConfirmation.USER_ID.eq(user.id))
                 .fetchOne()
-                ?.get(tableConfirmation.TOKEN)
+                ?.into(ConfirmationTokenPojo::class.java)
     }
 
-    fun verifyUser(up: UserPojo): UserPojo? {
+    fun setUserVerified(up: UserPojo, isVerified: Boolean = true): UserPojo? {
         /*  ###     OLD version
             ###     why by email I dont remember
             val user = userService.findByEmailIgnoreCase(token.userEntity?.email)
@@ -136,7 +94,7 @@ class UserRepository @Autowired constructor(
         */
 
         return dsl.update(tableUsers)
-                .set(tableUsers.IS_VERIFIED, true)
+                .set(tableUsers.IS_VERIFIED, isVerified)
                 .where(tableUsers.ID.eq(up.id))
                 .returning()
                 .fetchOne()
@@ -200,38 +158,6 @@ class UserRepository @Autowired constructor(
                 .where(tableUsers.ID.eq(id))
     }
 
-    //ToDo максимально обобщённый метод, надо разнести на несколько.
-    // Не нравится как он выглядит
-    fun updateUserData(userPojo: UserPojo): UserPojo? {
-        return dsl.update(tableUsers)
-                .set(
-                        row(
-                                tableUsers.NICKNAME,
-                                tableUsers.EMAIL,
-                                tableUsers.LOGIN,
-                                tableUsers.PASSWORD,
-                                tableUsers.ROLE_ID,
-                                tableUsers.FIRST_NAME,
-                                tableUsers.LAST_NAME,
-                                tableUsers.IS_VERIFIED
-                        ),
-                        row(
-                                userPojo.nickname,
-                                userPojo.email,
-                                userPojo.login,
-                                userPojo.password,
-                                userPojo.role_id,
-                                userPojo.first_name,
-                                userPojo.last_name,
-                                userPojo.isVerified
-                        ))
-                .where(
-                        tableUsers.ID.eq(userPojo.id))
-                .returning()
-                .fetchOne()
-                ?.into(UserPojo::class.java)
-    }
-
     fun findUserById(id: Int): UserPojo? {
         return dsl.selectFrom(tableUsers)
                 .where(tableUsers.ID.eq(id))
@@ -264,5 +190,28 @@ class UserRepository @Autowired constructor(
                 .where(tableUsers.ID.eq(roomId))
                 .fetch()
                 .into(UserPojo::class.java)
+    }
+
+    fun updateUser(oldUserPojo: UserPojo, userPojo: UserPojo): UserPojo? {
+
+        val userRecord = dsl.selectFrom(tableUsers)
+                .where(tableUsers.ID.eq(oldUserPojo.id))
+                .fetchOne() ?: return null
+        updateUserRecordFieldsFromPojo(userRecord, userPojo)
+        userRecord.store()
+        return userRecord.into(UserPojo::class.java)
+    }
+
+    private fun updateUserRecordFieldsFromPojo(userRecord: UsersRecord, userPojo: UserPojo) {
+        userPojo.nickname?.let(userRecord::setNickname)
+        userPojo.login?.let(userRecord::setLogin)
+        userPojo.firstName?.let(userRecord::setFirstName)
+        userPojo.lastName?.let(userRecord::setLastName)
+        userPojo.email?.let(userRecord::setEmail)
+        userPojo.password?.let(userRecord::setPassword)
+        userPojo.roleId?.let(userRecord::setRoleId)
+        userPojo.roomId?.let(userRecord::setRoomId)
+        userPojo.isVerified?.let(userRecord::setIsVerified)
+        userRecord.store()
     }
 }

@@ -10,15 +10,19 @@ spring:
     hibernate:
       ddl-auto: none
   jackson:
-    serialization:
-      FAIL_ON_EMPTY_BEANS: false
-      FAIL_ON_UNKNOWN_PROPERTIES: false
-    property-naming-strategy: SNAKE_CASE
-#    default-property-inclusion: non_null
+#    serialization:
+#      FAIL_ON_EMPTY_BEANS: false
+#      FAIL_ON_UNKNOWN_PROPERTIES: false
+    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy
+    deserialization:
+      fail-on-ignored-properties: false
+      fail-on-unknown-properties: false
+
+  #    default-property-inclusion: non_null
   mail:
     host: 'smtp.gmail.com'
     port: 587
-    username: ${mail.user}
+    username: ${mail.username}
     password: ${mail.password}
     properties:
       mail:

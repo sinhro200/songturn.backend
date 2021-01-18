@@ -2,7 +2,7 @@ package com.sinhro.songturn.backend.filter
 
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.backend.pojos.UserPojo
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
 import org.springframework.security.core.GrantedAuthority
@@ -50,17 +50,16 @@ class CustomUserDetails : UserDetails {
 
     companion object {
         fun fromUserPojoToCustomUserDetails(
-                userEntity: UserPojo, userService: UserService
+                userPojo: UserPojo, userService: UserService
         ): CustomUserDetails {
-            if (userEntity.login.isNullOrEmpty() || userEntity.password.isNullOrEmpty())
+            if (userPojo.login.isNullOrEmpty() || userPojo.password.isNullOrEmpty())
                 throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
             val c = CustomUserDetails()
-            c.login = userEntity.login!!
-            c.password = userEntity.password!!
+            c.login = userPojo.login!!
+            c.password = userPojo.password!!
             c.grantedAuthorities = listOf(
                     SimpleGrantedAuthority(
-                            userService.getUserRole(userEntity).name
-//                            userEntity.getRoleEntity().getName()
+                            userService.getUserRole(userPojo).name
                     )
             )
             return c

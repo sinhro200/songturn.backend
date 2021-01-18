@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component
 class CustomUserDetailsService @Autowired constructor(
         private val userService: UserService
 ) : UserDetailsService {
-    override fun loadUserByUsername(s: String): CustomUserDetails? {
-        val userPojo = userService.findByLogin(s)
+    override fun loadUserByUsername(username: String): CustomUserDetails? {
+        val userPojo = userService.findByLogin(username)
         return userPojo?.let {
             CustomUserDetails.fromUserPojoToCustomUserDetails(it,userService) }
     }

@@ -1,10 +1,8 @@
 package com.sinhro.songturn.backend.service
 
-import com.sinhro.songturn.backend.pojos.RoomPojo
-import com.sinhro.songturn.backend.pojos.UserPojo
-import com.sinhro.songturn.backend.tables.Room
+import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.backend.tables.RoomAction
-import com.sinhro.songturn.backend.tables.Users
 import com.sinhro.songturn.backend.tables.WhatShouldUpdate
 import com.sinhro.songturn.backend.tables.records.RoomActionRecord
 import com.sinhro.songturn.rest.ErrorCodes
@@ -12,8 +10,6 @@ import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.RoomActionType
 import org.jooq.DSLContext
-import org.jooq.Result
-import org.jooq.impl.DSL
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime

@@ -1,9 +1,11 @@
 package com.sinhro.songturn.backend.repository
 
-import com.sinhro.songturn.backend.pojos.PlaylistPojo
-import com.sinhro.songturn.backend.pojos.RoomPojo
 import com.sinhro.songturn.backend.tables.Playlist
 import com.sinhro.songturn.backend.tables.Room
+import com.sinhro.songturn.backend.tables.records.PlaylistRecord
+import com.sinhro.songturn.backend.tables.records.RoomRecord
+import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
+import com.sinhro.songturn.backend.tables.pojos.Playlist as PlaylistPojo
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
@@ -32,67 +34,28 @@ class RoomPlaylistRepository @Autowired constructor(
     }
 
     fun clearListenerId(playlistPojo: PlaylistPojo): PlaylistPojo {
-        val dbPlaylist = dsl.selectFrom(tablePlaylist)
+
+        val dbPlaylistRecord = dsl.selectFrom(tablePlaylist)
                 .where(tablePlaylist.ID.eq(playlistPojo.id))
-                .fetchOne()
-                ?.into(PlaylistPojo::class.java)
-        dbPlaylist?.let { foundedPlaylist ->
-            dsl.update(tablePlaylist)
-                    .setNull(tablePlaylist.LISTENER_ID)
-                    .where(tablePlaylist.ID.eq(foundedPlaylist.id))
-                    .returning()
-                    .fetchOne()
-                    ?.into(PlaylistPojo::class.java)
-                    ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Cant update playlist listener")
-        }
-        throw CommonException(CommonError(ErrorCodes.PLAYLIST_NOT_FOUND))
+                .fetchOne() ?: throw CommonException(CommonError(ErrorCodes.PLAYLIST_NOT_FOUND))
+        dbPlaylistRecord.listenerId = null
+        dbPlaylistRecord.store()
+        return dbPlaylistRecord.into(PlaylistPojo::class.java)
+
     }
 
     fun savePlaylist(playlistPojo: PlaylistPojo): PlaylistPojo {
-        return dsl.insertInto(tablePlaylist)
-                .columns(
-                        tablePlaylist.TITLE,
-                        tablePlaylist.DESCRIPTION,
-                        tablePlaylist.ROOM_ID,
-                        tablePlaylist.CURRENT_SONG_ID,
-                        tablePlaylist.LISTENER_ID)
-                .values(
-                        playlistPojo.title,
-                        playlistPojo.description,
-                        playlistPojo.room_id,
-                        playlistPojo.current_song_id,
-                        playlistPojo.listener_id)
-                .returning()
-                .fetchOne()
-                ?.into(PlaylistPojo::class.java) ?: throw CommonException(
-                CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
-                "Cant insert playlist")
+        val playlistRecord = dsl.newRecord(tablePlaylist)
+        updatePlaylistRecordFieldsFromPojo(playlistRecord, playlistPojo)
+        playlistRecord.store()
+        return playlistRecord.into(PlaylistPojo::class.java)
     }
 
     fun saveRoom(roomPojo: RoomPojo): RoomPojo {
-        return dsl.insertInto(tableRoom)
-                .columns(
-                        tableRoom.INVITE,
-                        tableRoom.TOKEN,
-                        tableRoom.TITLE,
-                        tableRoom.OWNER_ID,
-                        tableRoom.RS_PRIORITY_RARELY_ORDERING_USERS,
-                        tableRoom.RS_ALLOW_VOTES,
-                        tableRoom.RS_SONG_OWNERS_VISIBLE)
-                .values(
-                        roomPojo.invite,
-                        roomPojo.token,
-                        roomPojo.title,
-                        roomPojo.owner_id,
-                        roomPojo.rs_priority_rarely_ordering_users,
-                        roomPojo.rs_allow_votes,
-                        roomPojo.rs_song_owners_visible
-                )
-                .returning()
-                .fetchOne()
-                ?.into(RoomPojo::class.java) ?: throw CommonException(
-                CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
-                "Cant insert room")
+        val roomRecord = dsl.newRecord(tableRoom)
+        updateRoomRecordFieldsFromPojo(roomRecord, roomPojo)
+        roomRecord.store()
+        return roomRecord.into(RoomPojo::class.java)
     }
 
     fun findByInvite(invite: String): RoomPojo? {
@@ -109,33 +72,14 @@ class RoomPlaylistRepository @Autowired constructor(
                 ?.into(RoomPojo::class.java)
     }
 
-    fun updateRoom(roomPojo: RoomPojo): RoomPojo? {
-        return dsl.update(tableRoom)
-                .set(
-                        row(
-                                tableRoom.INVITE,
-                                tableRoom.TOKEN,
-                                tableRoom.TITLE,
-                                tableRoom.OWNER_ID,
-                                tableRoom.RS_PRIORITY_RARELY_ORDERING_USERS,
-                                tableRoom.RS_ALLOW_VOTES,
-                                tableRoom.RS_SONG_OWNERS_VISIBLE,
-                        ),
-                        row(
-                                roomPojo.invite,
-                                roomPojo.token,
-                                roomPojo.title,
-                                roomPojo.owner_id,
-                                roomPojo.rs_priority_rarely_ordering_users,
-                                roomPojo.rs_allow_votes,
-                                roomPojo.rs_song_owners_visible
-                        ))
-                .where(tableRoom.ID.eq(roomPojo.id))
-                .returning()
-                .fetchOne()
-                ?.into(RoomPojo::class.java) ?: throw CommonException(
-                CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
-                "Cant update room info to $roomPojo ")
+    fun updateRoom(oldRoomPojo: RoomPojo, roomPojo: RoomPojo): RoomPojo {
+        val roomRecord = dsl.selectFrom(tableRoom)
+                .where(tableRoom.ID.eq(oldRoomPojo.id))
+                .fetchOne() ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
+                "Room not found")
+        updateRoomRecordFieldsFromPojo(roomRecord, roomPojo)
+        roomRecord.store()
+        return roomRecord.into(RoomPojo::class.java)
     }
 
     fun roomsByUserId(userId: Int): MutableList<RoomPojo> {
@@ -187,5 +131,26 @@ class RoomPlaylistRepository @Autowired constructor(
                 .where(tablePlaylist.ROOM_ID.eq(roomId).and(tablePlaylist.TITLE.eq(playlistTitle)))
                 .fetchOne()
                 ?.into(PlaylistPojo::class.java)
+    }
+
+    private fun updatePlaylistRecordFieldsFromPojo(
+            playlistRecord: PlaylistRecord, playlistPojo: PlaylistPojo) {
+        playlistPojo.title?.let(playlistRecord::setTitle)
+        playlistPojo.description?.let(playlistRecord::setDescription)
+        playlistPojo.currentSongId?.let(playlistRecord::setCurrentSongId)
+        playlistPojo.listenerId?.let(playlistRecord::setListenerId)
+        playlistPojo.roomId?.let(playlistRecord::setRoomId)
+    }
+
+    private fun updateRoomRecordFieldsFromPojo(
+            roomRecord: RoomRecord, roomPojo: RoomPojo
+    ) {
+        roomPojo.title?.let(roomRecord::setTitle)
+        roomPojo.invite?.let(roomRecord::setInvite)
+        roomPojo.token?.let(roomRecord::setToken)
+        roomPojo.ownerId?.let(roomRecord::setOwnerId)
+        roomPojo.rsAllowVotes?.let(roomRecord::setRsAllowVotes)
+        roomPojo.rsPriorityRarelyOrderingUsers?.let(roomRecord::setRsPriorityRarelyOrderingUsers)
+        roomPojo.rsSongOwnersVisible?.let(roomRecord::setRsSongOwnersVisible)
     }
 }

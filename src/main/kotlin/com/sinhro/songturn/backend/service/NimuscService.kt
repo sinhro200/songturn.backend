@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 @Component
 class NimuscService {
@@ -47,7 +48,12 @@ class NimuscService {
                         node.get("artist").asText(),
                         node.get("url").asText(),
                         node.get("durationSeconds").asInt(),
-                        LocalDateTime.from(node.get("expiresAt").asLong()
+                        LocalDateTime.ofInstant(
+                                Instant.ofEpochMilli(
+                                        node.get("expiresAt").asLong()
+                                ),
+                                ZoneOffset.UTC
+                        )
                 )
             } else {
 //                logger.error("For [response.request] to ${response.request.url}, method ${response.request.method}, with body ${response.request.body.toString()}" +

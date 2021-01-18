@@ -1,81 +1,103 @@
 package com.sinhro.songturn.backend.service
 
+import com.sinhro.songturn.backend.controller.registration.ConfirmationMailBuilder
+import com.sinhro.songturn.backend.extentions.toFullUserInfo
+import com.sinhro.songturn.backend.extentions.toUserPojo
 import com.sinhro.songturn.backend.filter.CustomUserDetails
+import com.sinhro.songturn.backend.providers.JwtAuthProvider
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.backend.pojos.ConfirmationTokenPojo
-import com.sinhro.songturn.backend.pojos.RolePojo
-import com.sinhro.songturn.backend.pojos.RoomPojo
-import com.sinhro.songturn.backend.pojos.UserPojo
 import com.sinhro.songturn.backend.repository.UserRepository
+import com.sinhro.songturn.backend.tables.pojos.ConfirmationToken as ConfirmationTokenPojo
+import com.sinhro.songturn.backend.tables.pojos.Role as RolePojo
+import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.model.RoomActionType
+import com.sinhro.songturn.rest.model.FullUserInfo
+import com.sinhro.songturn.rest.model.RegisterUserInfo
+import com.sinhro.songturn.rest.request_response.AuthReqData
+import com.sinhro.songturn.rest.request_response.AuthRespBody
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
+import java.lang.Exception
+import java.time.LocalDateTime
+import java.util.*
 
 @Component
 class UserService @Autowired constructor(
-//        val dsl: DSLContext,
-        val passwordEncoder: PasswordEncoder,
-        val userRepository: UserRepository
+        private val passwordEncoder: PasswordEncoder,
+        private val userRepository: UserRepository,
+        private val jwtAuthProvider: JwtAuthProvider,
+        private val emailSenderService: EmailSenderService,
+        private val confirmationMailBuilder: ConfirmationMailBuilder
 ) {
 //    init {
 //        dsl.configuration().set(CustomSQLExceptionTranslator())
 //    }
 
-//    private val tableUsers: Users = Users.USERS
-//    private val tableRole: Role = Role.ROLE
-//    private val tableConfirmation: ConfirmationToken = ConfirmationToken.CONFIRMATION_TOKEN
+    fun authorizeUser(
+            authReqData: AuthReqData
+    ): AuthRespBody {
+        val user = findByAnyAndCheckPass(authReqData.login, authReqData.password)
 
-    fun registerUser(userPojo: UserPojo,decodedPassword : String, shouldVerify: Boolean): UserPojo? {
-        userRepository.validateNewUserData(userPojo)
+        if (!user.isVerified)
+            throw CommonException(CommonError(
+                    ErrorCodes.AUTH_USER_NOT_VERIFIED,
+                    "User not verified")
+            )
+        val token = jwtAuthProvider.generateToken(user.login)
 
-        if (shouldVerify)
-            return saveUserNotVerifiedAndCreateConfirmationToken(userPojo)
-        else
-            return saveUserVerified(userPojo)
+        return AuthRespBody(user.toFullUserInfo(), token)
     }
 
-    fun saveUserVerified(userPojoDTO: UserPojo): UserPojo? {
-        userPojoDTO.isVerified = true
-        return initAndSave(userPojoDTO)
-    }
+    fun registerUser(
+            registerUserInfo: RegisterUserInfo,
+            shouldVerify: Boolean
+    ): FullUserInfo {
+        validateUserInfo(registerUserInfo)
 
-    fun saveUserNotVerifiedAndCreateConfirmationToken(userPojoDTO: UserPojo): UserPojo? {
-        userPojoDTO.isVerified = false
+        val savedUser = initAndSave(registerUserInfo, !shouldVerify)
+        if (shouldVerify) {
+            var confToken: ConfirmationTokenPojo? = null
+            try {
+                confToken = ConfirmationTokenPojo(
+                        null, UUID.randomUUID().toString(),
+                        LocalDateTime.now(), savedUser.id
+                )
+                confToken = userRepository.saveConfirmationToken(confToken)
 
-        initAndSave(userPojoDTO)?.apply {
-            //  add user
-            id?.let { id ->
-                //user has id not null
-                val confirmationToken = ConfirmationTokenPojo.createNew(id)
-                userRepository.saveConfirmationToken(confirmationToken)?.let {
-                    //created conf token
-                    return this
-                }
-                //cant create conf token, should delete user
-                userRepository.deleteUserById(id)
+                emailSenderService.sendEmail(confirmationMailBuilder.createConfirmationMail(
+                        savedUser.email, confToken.token
+                ))
+            } catch (e: Exception) {
+                userRepository.removeUser(savedUser)
+                confToken?.let { userRepository.removeConfirmationToken(it) }
+                throw CommonException(CommonError(
+                        ErrorCodes.REGISTER_FAILED), e)
             }
-            //user has not id (id is null). But it cant happen
         }
-        return null
+
+        return savedUser.toFullUserInfo()
     }
 
-    fun getConfirmationToken(user: UserPojo): String? {
-        return userRepository.getConfirmationToken(user)
+
+    private fun removeCurrentUser() {
+        userRepository.removeUser(currentUser())
     }
 
-    private fun initAndSave(userPojo: UserPojo): UserPojo? {
-
-        userPojo.role_id = userRepository.defaultRole().id
-        userPojo.password = passwordEncoder.encode(userPojo.password)
+    private fun initAndSave(registerUserInfo: RegisterUserInfo, isVerified: Boolean): UserPojo {
+        val userPojo = registerUserInfo.toUserPojo(
+                passwordEncoder,
+                userRepository.defaultRole().id,
+                isVerified
+        )
 
         return userRepository.saveUser(userPojo)
     }
 
-    fun setVerifiedTrueByConfirmationToken(confirmationToken: String): UserPojo? {
+    fun setVerifiedTrueByConfirmationToken(confirmationToken: String): UserPojo {
         /*  ###     OLD version
             ###     why by email I dont remember
             val user = userService.findByEmailIgnoreCase(token.userEntity?.email)
@@ -85,15 +107,18 @@ class UserService @Autowired constructor(
                 ResponseEntity.ok("account verified")
             } else ResponseEntity.badRequest().body("Account not verified")
         */
-        val userPojo = userRepository.findUserByConfirmationToken(confirmationToken)
-        userPojo?.let {
-            return userRepository.verifyUser(it)
-        }
-        throw CommonException(
-                CommonError(
-                        ErrorCodes.INTERNAL_SERVER_EXC
-                ),
-                "Could not find user by confirmation token"
+        val user = userRepository.findUserByConfirmationToken(confirmationToken)
+                ?: throw CommonException(
+                        CommonError(
+                                ErrorCodes.INTERNAL_SERVER_EXC,
+                                "Could not find user by confirmation token"
+                        ),
+                        "User not found by confirmation token. Confirmation token is $confirmationToken"
+                )
+        return userRepository.setUserVerified(user) ?: throw CommonException(
+                CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
+                        "Could not verify user"),
+                "Cant verify user"
         )
     }
 
@@ -134,20 +159,14 @@ class UserService @Autowired constructor(
         return passwordEncoder.matches(password, user.password)
     }
 
-    fun users(): MutableList<UserPojo> {
-        return userRepository.users()
+    fun users(): List<FullUserInfo> {
+        return userRepository.users().map { it.toFullUserInfo() }
     }
 
     fun getUserRole(userPojo: UserPojo): RolePojo {
-        userPojo.role_id?.let {
-            return userRepository.getRoleByRoleId(it) ?: throw CommonException(
-                    CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
-                    "Role with id: $it not found. User with this role : $userPojo"
-            )
-        }
-        throw CommonException(
+        return userRepository.getRoleByRoleId(userPojo.roleId) ?: throw CommonException(
                 CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
-                "User dont has role id, $userPojo"
+                "Role with id: ${userPojo.roleId} not found. User with this role : $userPojo"
         )
     }
 
@@ -155,34 +174,45 @@ class UserService @Autowired constructor(
      * @Warning updates ALL data from userPojo by id
      *
      */
-    fun updateUser(userPojo: UserPojo): UserPojo? {
-        userRepository.validateNewUserData(userPojo)
+    fun updateUser(userPojo: UserPojo, registerUserInfo: RegisterUserInfo): UserPojo? {
+        validateUserInfo(registerUserInfo)
 
-        return userRepository.updateUserData(userPojo)
+        val oldUserPojo = userRepository.findUserById(userPojo.id) ?: throw CommonException(
+                CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User not found"
+        )
+
+        return userRepository.updateUser(
+                oldUserPojo,
+                registerUserInfo.toUserPojo(passwordEncoder)
+        )
     }
 
-    fun userEnteredRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
-        if (userPojo.id != null && roomPojo.id != null)
-            return userRepository.setUserInRoom(userPojo.id!!, roomPojo.id!!)
-                    ?: throw CommonException(
-                            CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
-                    )
-        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User or room dont has id")
+    fun validateUserInfo(registerUserInfo: RegisterUserInfo) {
+        userRepository.findUserByEmail(registerUserInfo.email)?.let {
+            throw throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
+        }
+
+        userRepository.findUserByLogin(registerUserInfo.login)?.let {
+            throw throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
+        }
     }
 
-    fun userLeftRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
-        if (userPojo.id != null && roomPojo.id != null)
-            return userRepository.setUserNotInRoom(userPojo.id!!)
-                    ?: throw CommonException(
-                            CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
-                    )
-        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "User or room dont has id")
+    fun setUserInRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
+        return userRepository.setUserInRoom(userPojo.id, roomPojo.id)
+                ?: throw CommonException(
+                        CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
+                )
     }
 
-    fun usersInRoom(roomPojo: RoomPojo): List<UserPojo> {
-        if (roomPojo.id != null)
-            return userRepository.getUsersInRoom(roomPojo.id!!)
-        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room dont has id")
+    fun setUserOutRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
+        return userRepository.setUserNotInRoom(userPojo.id)
+                ?: throw CommonException(
+                        CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
+                )
+    }
+
+    fun usersInRoom(roomPojo: RoomPojo): List<FullUserInfo> {
+        return userRepository.getUsersInRoom(roomPojo.id).map { it.toFullUserInfo() }
     }
 
     fun currentUser(): UserPojo {

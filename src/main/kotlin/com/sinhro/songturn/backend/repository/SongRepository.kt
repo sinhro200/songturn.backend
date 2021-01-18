@@ -1,7 +1,7 @@
 package com.sinhro.songturn.backend.repository
 
-import com.sinhro.songturn.backend.pojos.SongPojo
 import com.sinhro.songturn.backend.tables.Song
+import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component

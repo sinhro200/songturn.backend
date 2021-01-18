@@ -1,9 +1,8 @@
 package com.sinhro.songturn.backend.controller
 
-import com.sinhro.songturn.backend.pojos.UserPojo
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.backend.service.UserService
-import org.jooq.Record9
-import org.jooq.Result
+import com.sinhro.songturn.rest.model.FullUserInfo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
@@ -17,7 +16,7 @@ class UsersController @Autowired constructor(
 
 
     @GetMapping("/test/admin_api/users/")
-    fun getUsers(): MutableList<UserPojo> {
+    fun getUsers(): List<FullUserInfo> {
         return userService.users()
     }
 
