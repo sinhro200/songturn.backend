@@ -1,5 +1,6 @@
 package com.sinhro.songturn.backend.controller.room
 
+import com.sinhro.songturn.backend.extentions.toPublicSongInfo
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
@@ -49,7 +50,7 @@ class PlaylistController @Autowired constructor(
     ): CommonResponse<GetSongsRespBody> {
         req.data?.let { data ->
             return CommonResponse.buildSuccess(GetSongsRespBody(
-                    roomAndPlaylistService.getSongs(data)
+                    roomAndPlaylistService.getSongs(data.roomToken, data.playlistTitle)
             ))
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
@@ -62,7 +63,7 @@ class PlaylistController @Autowired constructor(
         req.data?.let { data ->
             val songInfo = roomAndPlaylistService.orderSong(data)
 
-            return CommonResponse.buildSuccess(OrderSongRespBody())
+            return CommonResponse.buildSuccess(OrderSongRespBody(songInfo.toPublicSongInfo()))
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }

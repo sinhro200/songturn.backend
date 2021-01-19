@@ -1,12 +1,10 @@
 package com.sinhro.songturn.backend.service
 
-import com.sinhro.songturn.backend.extentions.toPlaylistInfo
-import com.sinhro.songturn.backend.extentions.toPublicUserInfo
-import com.sinhro.songturn.backend.extentions.toRoomInfo
-import com.sinhro.songturn.backend.extentions.toSongInfo
+import com.sinhro.songturn.backend.extentions.*
 import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
 import com.sinhro.songturn.backend.tables.pojos.Playlist as PlaylistPojo
 import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
+import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 import com.sinhro.songturn.backend.providers.JwtRoomProvider
 import com.sinhro.songturn.backend.repository.RoomPlaylistRepository
 import com.sinhro.songturn.backend.repository.SongRepository
@@ -27,7 +25,8 @@ class RoomAndPlaylistService @Autowired constructor(
         private val songRepository: SongRepository,
         private val nimuscService: NimuscService,
         private val jwtRoomProvider: JwtRoomProvider,
-        private val randomStringGenerator: RandomStringGenerator
+        private val randomStringGenerator: RandomStringGenerator,
+        private val roomActionRepository: RoomActionRepository
 ) {
 
     @Value("\${room_invite.chars}")
@@ -40,7 +39,7 @@ class RoomAndPlaylistService @Autowired constructor(
     private var countRoomsUserOwns: Int = 1
 
     fun userWannaListen(listenPlaylistReqData: ListenPlaylistReqData): PlaylistInfo {
-        val room = getRoomFromToken(listenPlaylistReqData.roomToken)
+        val room = findRoomByToken(listenPlaylistReqData.roomToken)
         val playlist = roomPlaylistRepository.getPlaylistInRoom(
                 room.id,
                 listenPlaylistReqData.playlistTitle
@@ -48,14 +47,15 @@ class RoomAndPlaylistService @Autowired constructor(
         val currentUser = userService.currentUser()
 
         if (playlist.listenerId != null && playlist.listenerId != currentUser.id)
-            throw CommonException(CommonError(ErrorCodes.PLAYLIST_ALREADY_HAS_LISTENER))
+            throw CommonException(CommonError(
+                    ErrorCodes.PLAYLIST_ALREADY_HAS_LISTENER))
 
         return roomPlaylistRepository.setListenerId(playlist, currentUser.id).toPlaylistInfo()
     }
 
     fun userDontWantListen(stopListenPlaylistReqData: StopListenPlaylistReqData)
             : PlaylistInfo {
-        val room = getRoomFromToken(stopListenPlaylistReqData.roomToken)
+        val room = findRoomByToken(stopListenPlaylistReqData.roomToken)
         val playlist = roomPlaylistRepository.getPlaylistInRoom(room.id, stopListenPlaylistReqData.playlistTitle)
                 ?: throw CommonException(CommonError(ErrorCodes.PLAYLIST_NOT_FOUND))
         return roomPlaylistRepository.clearListenerId(playlist).toPlaylistInfo()
@@ -75,28 +75,56 @@ class RoomAndPlaylistService @Autowired constructor(
             throw CommonException(CommonError(ErrorCodes.MAX_ROOMS_OWNS,
                     "User created the maximum number of rooms."))
 
+
         val roomPojo = roomPlaylistRepository.saveRoom(
-                defaultRoom(createRoomReqData.title, currentUser)
+                RoomPojo(
+                        null,
+                        createDefaultEmptyInvite(),
+                        null,
+                        createRoomReqData.title,
+                        currentUser.id,
+                        createRoomReqData.roomSettings?.priorityRarelyOrderingUsers,
+                        createRoomReqData.roomSettings?.allowVotes,
+                        createRoomReqData.roomSettings?.songOwnersVisible,
+                        createRoomReqData.roomSettings?.anyCanListen
+                )
         )
         val newRoomPojo = RoomPojo(
                 null, null,
                 jwtRoomProvider.generateToken(
                         roomPojo.title, roomPojo.id.toString()
                 ),
-                null, null, null, null, null
+                null, null, null,
+                null, null, null
         )
 
         val updatedRoomPojo = roomPlaylistRepository.updateRoom(roomPojo, newRoomPojo)
 
-        //ToDO RoomAction
-        //roomActionService.roomCreated(owner,createdRoom)
-//        roomActionService.initUserCreatedRoomActions(currentUser, createdRoom)
-//        roomActionService.initUserActions(currentUser, createdRoom)
-//        roomActionService.userAction(currentUser, createdRoom, RoomActionType.ROOM_INFO_UPDATED)
+        //RoomAction
+//        roomActionRepository.roomCreated(owner,createdRoom)
+        roomActionRepository.initUserChangeActions(currentUser, updatedRoomPojo)
+        roomActionRepository.initUserUpdateActions(currentUser, updatedRoomPojo)
+        roomActionRepository.userUpdateAction(
+                currentUser,
+                updatedRoomPojo,
+                RoomActionType.ROOM_INFO
+        )
 
 
         createPlaylist(updatedRoomPojo, currentUser)
         return updatedRoomPojo.toRoomInfo()
+    }
+
+    fun roomInfo(
+            token: String
+    ): RoomInfo {
+        val room = findRoomByToken(token)
+        val user = userService.currentUser()
+
+        roomActionRepository.userUpdateAction(
+                user, room, RoomActionType.ROOM_INFO
+        )
+        return room.toRoomInfo()
     }
 
     private fun createPlaylist(roomPojo: RoomPojo, ownerUserPojo: UserPojo) {
@@ -118,46 +146,11 @@ class RoomAndPlaylistService @Autowired constructor(
                 removeRoomReqData.inviteOrToken,
                 currentUser.id
         )
+        removedRooms.forEach {
+            roomActionRepository.removeAllActionsByRoom(it)
+        }
         return removedRooms.map { it.toRoomInfo() }
     }
-
-//    fun createRoom(title: String, ownerPojo: UserPojo): RoomPojo {
-//
-//        if (roomPlaylistRepository.roomsByUserId(ownerPojo.id).count() >= countRoomsUserOwns)
-//            throw CommonException(CommonError(ErrorCodes.MAX_ROOMS_OWNS,
-//                    "User created the maximum number of rooms."))
-//
-//
-//        var roomPojo = defaultRoom(title, ownerPojo)
-//
-//        roomPojo = roomPlaylistRepository.saveRoom(roomPojo)
-//        val roomId = roomPojo.id
-//
-//        val token: String =
-//                jwtRoomProvider.generateToken(title, roomId.toString())
-//        roomPojo.token = token
-//
-//        roomPlaylistRepository.updateRoom(roomPojo)
-//
-//        roomPlaylistRepository.savePlaylist(
-//                PlaylistPojo(
-//                        title = defaultPlaylistName(title),
-//                        description = "",
-//                        room_id = roomPojo.id,
-//                        listener_id = ownerPojo.id
-//                )
-//        )
-//
-//        return roomPojo
-//    }
-
-    //    fun removeRoom(inviteOrToken: String, ownerPojo: UserPojo): MutableList<RoomPojo> {
-//        ownerPojo.id?.let {
-//            //automaticly removing playlist connected to room, when the room removed
-//            return roomPlaylistRepository.removeRoomByInvOrToken(inviteOrToken, it)
-//        }
-//        throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Room owner dont has id")
-//    }
 
     fun enterRoom(
             enterRoomReqData: EnterRoomReqData
@@ -168,20 +161,32 @@ class RoomAndPlaylistService @Autowired constructor(
         val user = userService.currentUser()
 
         userService.setUserInRoom(user, room)
-        //ToDo RoomAction
-//        roomActionService.initUserActions(user, room)
-//        roomActionService.roomAction(
-//                user, room,
-//                RoomActionType.ROOM_INFO_UPDATED
-//        )
+
+        //RoomAction
+        roomActionRepository.initUserUpdateActions(user, room)
+        roomActionRepository.userUpdateAction(
+                user, room,
+                RoomActionType.ROOM_INFO
+        )
+        roomActionRepository.changeAction(
+                user, room,
+                RoomActionType.ROOM_USERS,
+                true
+        )
 
         return room.toRoomInfo()
+    }
+
+    fun updateRoominfo(
+
+    ) {
+
     }
 
     fun leaveRoom(
             leaveRoomReqData: LeaveRoomReqData
     ): RoomInfo {
-        val room = getRoomFromToken(leaveRoomReqData.roomToken)
+        val room = findRoomByToken(leaveRoomReqData.roomToken)
         val user = userService.currentUser()
 
         userService.setUserOutRoom(user, room)
@@ -191,44 +196,40 @@ class RoomAndPlaylistService @Autowired constructor(
 
     fun whatShouldUpdate(whatShouldUpdateReqData: WhatShouldUpdateReqData)
             : List<RoomActionInfo> {
-        val room = getRoomFromToken(whatShouldUpdateReqData.roomToken)
+        val room = findRoomByToken(whatShouldUpdateReqData.roomToken)
 
-        //ToDo RoomAction
-//        val actionTypes = roomActionService.whatShouldUpdate(
-//                userService.currentUser(),
-//                room
-//        )
-//        return actionTypes.stream()
-//                .map { RoomActionInfo(it) }
-//                .collect(Collectors.toList())
-
-        return emptyList()
+        //RoomAction
+        val actionTypes = roomActionRepository.whatShouldUpdate(
+                userService.currentUser(),
+                room
+        )
+        return actionTypes.map { RoomActionInfo(it) }
     }
 
     fun getUsersInRoom(
-            usersInRoomReqData: UsersInRoomReqData
+            roomToken: String
     ): List<PublicUserInfo> {
         val user = userService.currentUser()
-        val room = getRoomFromToken(usersInRoomReqData.roomToken)
+        val room = findRoomByToken(roomToken)
 
         val usersInRoomPublicInfos = userService.usersInRoom(room).map { it.toPublicUserInfo() }
-        //ToDo RoomAction
-//        roomActionService.userAction(
-//                user, room, RoomActionType.ROOM_USERS_UPDATED
-//        )
+        //RoomAction
+        roomActionRepository.userUpdateAction(
+                user, room, RoomActionType.ROOM_USERS
+        )
         return usersInRoomPublicInfos
     }
 
-    fun getRoomPlaylists(
-            getPlaylistsReqData: GetPlaylistsReqData
+    fun roomPlaylists(
+            roomToken: String
     ): List<PlaylistInfo> {
         val user = userService.currentUser()
-        val room = getRoomFromToken(getPlaylistsReqData.roomToken)
+        val room = findRoomByToken(roomToken)
         val playlists = roomPlaylistRepository.getAllPlaylistsInRoom(room.id)
-        //ToDo RoomAction
-//        roomActionService.userAction(
-//                user, room, RoomActionType.PLAYLIST_INFO_UPDATED
-//        )
+        //RoomAction
+        roomActionRepository.userUpdateAction(
+                user, room, RoomActionType.PLAYLIST_INFO
+        )
         return playlists.map { it.toPlaylistInfo() }
     }
 
@@ -244,7 +245,7 @@ class RoomAndPlaylistService @Autowired constructor(
         return room?.toRoomInfo()
     }
 
-    fun getRoomFromToken(roomToken: String): RoomPojo {
+    private fun findRoomByToken(roomToken: String): RoomPojo {
         val id: String = jwtRoomProvider.getRoomIdFromToken(roomToken)
         return roomPlaylistRepository.findRoomById(Integer.valueOf(id)) ?: throw CommonException(
                 CommonError(ErrorCodes.ROOM_NOT_FOUND)
@@ -252,39 +253,54 @@ class RoomAndPlaylistService @Autowired constructor(
     }
 
     fun getSongs(
-            getSongsReqData: GetSongsReqData
+            roomToken: String,
+            playlistTitle: String
     ): List<SongInfo> {
-        val room = getRoomFromToken(getSongsReqData.roomToken)
-        val playlist = getRoomPlaylist(room, getSongsReqData.playlistTitle)
-        return songRepository.getSongsInPlaylist(playlist.id)
-                .map { it.toSongInfo() }
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+
+        val songPojos = songRepository.songsInPlaylist(playlist.id)
+        val user = userService.currentUser()
+        roomActionRepository.userUpdateAction(
+                user, room,
+                RoomActionType.PLAYLIST_SONGS
+        )
+        return if (room.rsAnyCanListen || playlist.listenerId == user.id)
+            songPojos.map { it.toFullSongInfo() }
+        else
+            songPojos.map { it.toPublicSongInfo() }
     }
+
+
 
     fun orderSong(
             orderSongReqData: OrderSongReqData
-    ) : SongInfo{
-        val room = getRoomFromToken(orderSongReqData.roomToken)
+    ): SongInfo {
+        val room = findRoomByToken(orderSongReqData.roomToken)
         val playlist = getRoomPlaylist(room, orderSongReqData.playlistTitle)
+        val user = userService.currentUser()
 
         val songInfo = nimuscService.getAudio(
                 orderSongReqData.songLink,
                 orderSongReqData.musicServiceAuthInfo
         )
 
-        //ToDo order song
-        // save song in repo
-        return songInfo
-    }
+        val savedSong = songRepository.saveSong(SongPojo(
+                null,
+                songInfo.artist, songInfo.title, songInfo.link, songInfo.duration,
+                null, songInfo.expiresAt,
+                playlist.id, user.id, null, orderSongReqData.songLink
+        ), playlist.id)
 
-    private fun defaultRoom(title: String, ownerPojo: UserPojo): RoomPojo {
-        return RoomPojo(
-                null,
-                createDefaultEmptyInvite(),
-                null,
-                title,
-                ownerPojo.id,
-                false, false, false
+        //RoomAction
+        roomActionRepository.changeAction(
+                user, room, RoomActionType.PLAYLIST_SONGS
         )
+
+        return if (room.rsAnyCanListen || playlist.listenerId == user.id)
+            savedSong.toFullSongInfo()
+        else
+            savedSong.toPublicSongInfo()
     }
 
     private fun createEmptyInvite(chars: CharSequence, length: Int): String {

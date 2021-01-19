@@ -29,7 +29,8 @@ class RoomPlaylistRepository @Autowired constructor(
                 .returning()
                 .fetchOne()
                 ?.into(PlaylistPojo::class.java)
-                ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC), "Cant update playlist listener")
+                ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
+                        "Cant update playlist listener")
 
     }
 
@@ -72,7 +73,8 @@ class RoomPlaylistRepository @Autowired constructor(
                 ?.into(RoomPojo::class.java)
     }
 
-    fun updateRoom(oldRoomPojo: RoomPojo, roomPojo: RoomPojo): RoomPojo {
+    fun updateRoom(oldRoomPojo: RoomPojo, roomPojo: RoomPojo,
+                   updateOnlyNoNullValues: Boolean = true): RoomPojo {
         val roomRecord = dsl.selectFrom(tableRoom)
                 .where(tableRoom.ID.eq(oldRoomPojo.id))
                 .fetchOne() ?: throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC),
@@ -143,14 +145,27 @@ class RoomPlaylistRepository @Autowired constructor(
     }
 
     private fun updateRoomRecordFieldsFromPojo(
-            roomRecord: RoomRecord, roomPojo: RoomPojo
+            roomRecord: RoomRecord, roomPojo: RoomPojo,
+            onlyNonNullValues: Boolean = true
     ) {
-        roomPojo.title?.let(roomRecord::setTitle)
-        roomPojo.invite?.let(roomRecord::setInvite)
-        roomPojo.token?.let(roomRecord::setToken)
-        roomPojo.ownerId?.let(roomRecord::setOwnerId)
-        roomPojo.rsAllowVotes?.let(roomRecord::setRsAllowVotes)
-        roomPojo.rsPriorityRarelyOrderingUsers?.let(roomRecord::setRsPriorityRarelyOrderingUsers)
-        roomPojo.rsSongOwnersVisible?.let(roomRecord::setRsSongOwnersVisible)
+        if (onlyNonNullValues) {
+            roomPojo.title?.let(roomRecord::setTitle)
+            roomPojo.invite?.let(roomRecord::setInvite)
+            roomPojo.token?.let(roomRecord::setToken)
+            roomPojo.ownerId?.let(roomRecord::setOwnerId)
+            roomPojo.rsAllowVotes?.let(roomRecord::setRsAllowVotes)
+            roomPojo.rsPriorityRarelyOrderingUsers?.let(roomRecord::setRsPriorityRarelyOrderingUsers)
+            roomPojo.rsSongOwnersVisible?.let(roomRecord::setRsSongOwnersVisible)
+            roomPojo.rsAnyCanListen?.let(roomRecord::setRsAnyCanListen)
+        } else {
+            roomRecord.title = roomPojo.title
+            roomRecord.invite = roomPojo.invite
+            roomRecord.token = roomPojo.token
+            roomRecord.ownerId = roomPojo.ownerId
+            roomRecord.rsAllowVotes = roomPojo.rsAllowVotes
+            roomRecord.rsAnyCanListen = roomPojo.rsAnyCanListen
+            roomRecord.rsPriorityRarelyOrderingUsers = roomPojo.rsPriorityRarelyOrderingUsers
+            roomRecord.rsSongOwnersVisible = roomPojo.rsSongOwnersVisible
+        }
     }
 }

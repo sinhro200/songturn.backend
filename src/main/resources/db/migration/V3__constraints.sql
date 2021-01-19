@@ -58,7 +58,7 @@ END
 $$;
 
 CREATE TRIGGER "playlist_constraints"
-    BEFORE UPDATE OR INSERT
+    BEFORE INSERT
     ON "playlist"
     FOR EACH ROW
 EXECUTE PROCEDURE playlist_constraints()

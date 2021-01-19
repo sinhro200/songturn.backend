@@ -17,7 +17,7 @@ fun UserPojo.toFullUserInfo(): FullUserInfo {
 
 fun UserPojo.toPublicUserInfo(): PublicUserInfo {
     return PublicUserInfo(
-            firstName, lastName, nickname
+            id, firstName, lastName, nickname
     )
 }
 
@@ -49,7 +49,7 @@ fun RegisterUserInfo.toUserPojo(
 
 fun FullUserInfo.toPublicUserInfo(): PublicUserInfo {
     return PublicUserInfo(
-            firstName, lastName, nickname
+            id, firstName, lastName, nickname
     )
 }
 
@@ -61,13 +61,31 @@ fun PlaylistPojo.toPlaylistInfo(): PlaylistInfo {
 
 fun RoomPojo.toRoomInfo(): RoomInfo {
     return RoomInfo(
-            title, invite, token, ownerId
+            title, invite, token, ownerId,
+            RoomSettings(
+                    rsPriorityRarelyOrderingUsers,
+                    rsAllowVotes,
+                    rsSongOwnersVisible,
+                    rsAnyCanListen
+            )
     )
 }
 
-fun SongPojo.toSongInfo(): SongInfo {
+fun SongPojo.toFullSongInfo(): SongInfo {
     return SongInfo(
-            title, artist, link, duration, expiresAt
+            title, artist, duration, link, expiresAt, userId
+    )
+}
+
+fun SongPojo.toPublicSongInfo(): SongInfo {
+    return SongInfo(
+            title, artist, duration
+    )
+}
+
+fun SongInfo.toPublicSongInfo(): SongInfo {
+    return SongInfo(
+            title, artist, duration
     )
 }
 

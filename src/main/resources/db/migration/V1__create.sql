@@ -41,6 +41,7 @@ CREATE TABLE "room" (
     "rs_priority_rarely_ordering_users" BOOLEAN DEFAULT false NOT NULL,
     "rs_allow_votes" BOOLEAN NOT NULL DEFAULT true,
     "rs_song_owners_visible" BOOLEAN NOT NULL DEFAULT false,
+    "rs_any_can_listen" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "room_owner_id-users_id"
         FOREIGN KEY ("owner_id") REFERENCES "users"("id")
             ON DELETE RESTRICT
@@ -52,7 +53,7 @@ CREATE TABLE "room_action" (
     "user_id" INTEGER NOT NULL,
     "room_id" INTEGER NOT NULL,
     "action_type" INTEGER NOT NULL,
-    "is_room_changed" BOOLEAN NOT NULL default false,
+    "is_change_action" BOOLEAN NOT NULL default false,
     "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- PRIMARY KEY(room_id, user_id, action_type, is_room_action)
      CONSTRAINT "room_id-room_id"

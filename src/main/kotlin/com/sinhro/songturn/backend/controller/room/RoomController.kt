@@ -1,13 +1,14 @@
 package com.sinhro.songturn.backend.controller.room
 
-import com.sinhro.songturn.backend.service.RoomActionService
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
-import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.core.CommonRequest
 import com.sinhro.songturn.rest.core.CommonResponse
+import com.sinhro.songturn.rest.model.PlaylistInfo
+import com.sinhro.songturn.rest.model.RoomInfo
+import com.sinhro.songturn.rest.model.SongInfo
 import com.sinhro.songturn.rest.request_response.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
@@ -15,9 +16,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/room")
 class RoomController @Autowired constructor(
-        private val roomAndPlaylistService: RoomAndPlaylistService,
-        private val userService: UserService,
-        private val roomActionService: RoomActionService,
+        private val roomAndPlaylistService: RoomAndPlaylistService
 ) {
 
     @GetMapping("/myrooms")
@@ -75,6 +74,19 @@ class RoomController @Autowired constructor(
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
 
+    @PostMapping("/info")
+    fun roomInfo(
+            @RequestBody req: CommonRequest<RoomInfoReqData>
+    ): CommonResponse<RoomInfo> {
+        req.data?.let {
+
+            return CommonResponse.buildSuccess(
+                    roomAndPlaylistService.roomInfo(it.roomToken)
+            )
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
+
     @PostMapping("/whatchanged")
     fun shouldUpdate(
             @RequestBody req: CommonRequest<WhatShouldUpdateReqData>
@@ -93,7 +105,7 @@ class RoomController @Autowired constructor(
     ): CommonResponse<UsersInRoomRespBody> {
         req.data?.let {
             return CommonResponse.buildSuccess(UsersInRoomRespBody(
-                    roomAndPlaylistService.getUsersInRoom(it)
+                    roomAndPlaylistService.getUsersInRoom(it.roomToken)
             ))
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
@@ -107,14 +119,11 @@ class RoomController @Autowired constructor(
     @PostMapping("/playlists")
     fun playlistsInRoom(
             @RequestBody req: CommonRequest<GetPlaylistsReqData>
-    ): CommonResponse<GetPlaylistsRespBody> {
+    ): CommonResponse<List<PlaylistInfo>> {
         req.data?.let { data ->
             return CommonResponse.buildSuccess(
-                    GetPlaylistsRespBody(
-                            roomAndPlaylistService.getRoomPlaylists(data)
-                    )
+                    roomAndPlaylistService.roomPlaylists(data.roomToken)
             )
-
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
@@ -134,4 +143,27 @@ class RoomController @Autowired constructor(
         //ToDO
     }
 
+    @PostMapping("/fullroominfo")
+    fun fullRoomInfo(
+            @RequestBody req: CommonRequest<RoomInfoReqData>
+    ): CommonResponse<FullRoomInfoRespBody> {
+        req.data?.let { roomInfoReqData ->
+            val room: RoomInfo = roomAndPlaylistService.roomInfo(roomInfoReqData.roomToken)
+            val playlists: List<PlaylistInfo> =
+                    roomAndPlaylistService.roomPlaylists(roomInfoReqData.roomToken)
+
+            val songsInPlaylists = mutableMapOf<Int, List<SongInfo>>()
+            playlists.forEach { playlist ->
+                songsInPlaylists[playlist.id] = roomAndPlaylistService.getSongs(roomInfoReqData.roomToken, playlist.title)
+            }
+            val users = roomAndPlaylistService.getUsersInRoom(roomInfoReqData.roomToken)
+
+            return CommonResponse.buildSuccess(
+                    FullRoomInfoRespBody(
+                            room, users, playlists, songsInPlaylists
+                    )
+            )
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
 }

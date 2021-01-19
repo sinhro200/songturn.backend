@@ -5,6 +5,7 @@ import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 
 @Component
 class SongRepository @Autowired constructor(
@@ -12,10 +13,25 @@ class SongRepository @Autowired constructor(
 ) {
     private val tableSong = Song.SONG
 
-    fun getSongsInPlaylist(playlistId: Int): MutableList<SongPojo> {
+    fun songsInPlaylist(playlistId: Int): MutableList<SongPojo> {
         return dsl.selectFrom(tableSong)
                 .where(tableSong.PLAYLIST_ID.eq(playlistId))
                 .fetch()
                 .into(SongPojo::class.java)
+    }
+
+    fun saveSong(song: SongPojo, playlistId: Int): SongPojo {
+        val songRec = dsl.newRecord(tableSong)
+                .setArtist(song.artist)
+                .setTitle(song.title)
+                .setDuration(song.duration)
+                .setLink(song.link)
+                .setExpiresAt(song.expiresAt)
+                .setLinkFromUser(song.linkFromUser)
+                .setUserId(song.userId)
+                .setPlaylistId(playlistId)
+        songRec.store()
+
+        return songRec.into(SongPojo::class.java)
     }
 }
