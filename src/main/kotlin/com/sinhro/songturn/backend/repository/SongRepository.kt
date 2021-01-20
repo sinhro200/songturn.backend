@@ -34,4 +34,11 @@ class SongRepository @Autowired constructor(
 
         return songRec.into(SongPojo::class.java)
     }
+
+    fun getSongById(songId: Int): SongPojo? {
+        return dsl.selectFrom(tableSong)
+                .where(tableSong.ID.eq(songId))
+                .fetchOne()
+                ?.into(SongPojo::class.java)
+    }
 }

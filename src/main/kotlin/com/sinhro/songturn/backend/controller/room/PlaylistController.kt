@@ -67,4 +67,32 @@ class PlaylistController @Autowired constructor(
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
+
+    @PostMapping("/setCurrentPlayingSong")
+    fun setCurrentPlayingSong(
+            @RequestBody reqSet: CommonRequest<SetCurrentPlayingSongReqData>
+    ): CommonResponse<SetCurrentPlayingSongRespBody> {
+        reqSet.data?.let {
+            val updatedPlaylistInfo = roomAndPlaylistService.setCurrentPlayingSong(
+                    it.roomToken, it.playlistTitle, it.songId
+            )
+            return CommonResponse.buildSuccess(SetCurrentPlayingSongRespBody(updatedPlaylistInfo))
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
+
+    @PostMapping("/currentPlayingSong")
+    fun currentPlayingSong(
+            @RequestBody reqSet: CommonRequest<CurrentPlayingSongReqData>
+    ): CommonResponse<CurrentPlayingSongRespBody> {
+        reqSet.data?.let {
+            val updatedPlaylistInfo = roomAndPlaylistService.currentPlayingSong(
+                    it.roomToken, it.playlistTitle
+            )
+            return CommonResponse.buildSuccess(CurrentPlayingSongRespBody(
+                    updatedPlaylistInfo
+            ))
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
 }

@@ -17,6 +17,7 @@ import com.sinhro.songturn.rest.request_response.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 
 @Component
 class RoomAndPlaylistService @Autowired constructor(
@@ -272,7 +273,6 @@ class RoomAndPlaylistService @Autowired constructor(
     }
 
 
-
     fun orderSong(
             orderSongReqData: OrderSongReqData
     ): SongInfo {
@@ -280,15 +280,16 @@ class RoomAndPlaylistService @Autowired constructor(
         val playlist = getRoomPlaylist(room, orderSongReqData.playlistTitle)
         val user = userService.currentUser()
 
-        val songInfo = nimuscService.getAudio(
+        val audioItem = nimuscService.getAudio(
                 orderSongReqData.songLink,
                 orderSongReqData.musicServiceAuthInfo
         )
 
         val savedSong = songRepository.saveSong(SongPojo(
                 null,
-                songInfo.artist, songInfo.title, songInfo.link, songInfo.duration,
-                null, songInfo.expiresAt,
+                audioItem.artist, audioItem.title, audioItem.url,
+                audioItem.durationSeconds, null,
+                LocalDateTime.now().plus(audioItem.expiresIn),
                 playlist.id, user.id, null, orderSongReqData.songLink
         ), playlist.id)
 
@@ -301,6 +302,52 @@ class RoomAndPlaylistService @Autowired constructor(
             savedSong.toFullSongInfo()
         else
             savedSong.toPublicSongInfo()
+    }
+
+    fun setCurrentPlayingSong(
+            roomToken: String, playlistTitle: String, songId: Int
+    ): PlaylistInfo {
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+        val user = userService.currentUser()
+        val songsInPlaylist = songRepository.songsInPlaylist(playlist.id)
+        if (songsInPlaylist.find { it.id == songId } == null)
+            throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
+                    "Playlist dont contains this song"))
+
+        val playlistPojo =
+                roomPlaylistRepository.setCurrentPlayingSong(playlist.id, songId)
+                        ?: throw CommonException(CommonError(
+                                ErrorCodes.INTERNAL_SERVER_EXC,
+                                "Cant set current playing song"
+                        ))
+
+        //RoomAction
+        roomActionRepository.changeAction(
+                user, room, RoomActionType.PLAYLIST_CURRENT_PLAYING_SONG
+        )
+
+        return playlistPojo.toPlaylistInfo()
+    }
+
+    fun currentPlayingSong(roomToken: String, playlistTitle: String): SongInfo? {
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+        val user = userService.currentUser()
+
+        val songPojo =
+                if (playlist.currentSongId == null)
+                    null
+                else
+                    songRepository.getSongById(playlist.currentSongId)
+
+
+        //RoomAction
+        roomActionRepository.userUpdateAction(
+                user, room, RoomActionType.PLAYLIST_CURRENT_PLAYING_SONG
+        )
+
+        return songPojo?.toPublicSongInfo()
     }
 
     private fun createEmptyInvite(chars: CharSequence, length: Int): String {

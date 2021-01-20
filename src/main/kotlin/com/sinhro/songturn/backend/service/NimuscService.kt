@@ -1,20 +1,35 @@
 package com.sinhro.songturn.backend.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.PropertyNamingStrategy
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.SongInfo
 import okhttp3.*
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.stereotype.Component
-import java.time.Instant
+import java.time.Duration
 import java.time.LocalDateTime
-import java.time.ZoneOffset
+
+data class AudioItem(
+        val artist: String,
+        val title: String,
+        val url: String,
+        val durationSeconds: Int,
+        val expiresIn: Duration = Duration.ofHours(1)
+)
 
 @Component
-class NimuscService {
+class NimuscService @Autowired constructor(
+        @Qualifier("NimuscObjectMapper")
+        private val om : ObjectMapper
+) {
 
     private val logger = LoggerFactory.getLogger(NimuscService::class.java)
 
@@ -24,7 +39,7 @@ class NimuscService {
     @Value("\${nimusc.server.port}")
     private var serverPort: Int = 0
 
-    fun getAudio(songLink: String, authInfo: String?): SongInfo {
+    fun getAudio(songLink: String, authInfo: String?): AudioItem {
         val client = OkHttpClient()
 
         val httpUrlBuilder = HttpUrl.Builder()
@@ -42,14 +57,21 @@ class NimuscService {
 
         val call: Call = client.newCall(request)
         val response: Response = call.execute()
-        val om = ObjectMapper()
+
 //        om.setSerializationInclusion(JsonInclude.Include.NON_NULL)
 
         response.body()?.let { responseBody ->
             if (response.isSuccessful) {
-                val node = om.readTree(responseBody.string())
+//                val om = jackson2ObjectMapperBuilder.build<ObjectMapper>()
+//                om.propertyNamingStrategy = PropertyNamingStrategy.LOWER_CAMEL_CASE
 
-                val expiresAtNullableNode = node.get("expiresAt")
+                val audioItem =
+                        om.readValue<AudioItem>(responseBody.string())
+                return audioItem
+
+//                val node = om.readTree(responseBody.string())
+
+                /*val expiresAtNullableNode = node.get("expiresAt")
                 val expiresAt: LocalDateTime?
                 if (expiresAtNullableNode == null
                         || expiresAtNullableNode.isNull
@@ -68,8 +90,8 @@ class NimuscService {
                         artist = node.get("artist").asText(),
                         duration = node.get("durationSeconds").asInt(),
                         link = node.get("url").asText(),
-                        expiresAt = expiresAt
-                )
+
+                )*/
             } else {
                 val request = response.request()
                 logger.error("For [response.request] to ${request.url()}, " +

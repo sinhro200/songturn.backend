@@ -135,6 +135,15 @@ class RoomPlaylistRepository @Autowired constructor(
                 ?.into(PlaylistPojo::class.java)
     }
 
+    fun setCurrentPlayingSong(playlistId: Int, songId: Int): PlaylistPojo? {
+        return dsl.update(tablePlaylist)
+                .set(tablePlaylist.CURRENT_SONG_ID, songId)
+                .where(tablePlaylist.ID.eq(playlistId))
+                .returning()
+                .fetchOne()
+                ?.into(PlaylistPojo::class.java)
+    }
+
     private fun updatePlaylistRecordFieldsFromPojo(
             playlistRecord: PlaylistRecord, playlistPojo: PlaylistPojo) {
         playlistPojo.title?.let(playlistRecord::setTitle)

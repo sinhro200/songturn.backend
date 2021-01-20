@@ -58,7 +58,7 @@ CREATE TABLE "room_action" (
     -- PRIMARY KEY(room_id, user_id, action_type, is_room_action)
      CONSTRAINT "room_id-room_id"
         FOREIGN KEY ("room_id") REFERENCES "room"("id")
-            ON DELETE RESTRICT
+            ON DELETE CASCADE
             ON UPDATE CASCADE,
     CONSTRAINT "user_id-user_id"
         FOREIGN KEY ("user_id") REFERENCES "users"("id")

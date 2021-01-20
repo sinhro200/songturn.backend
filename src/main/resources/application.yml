@@ -9,14 +9,15 @@ spring:
     generate-ddl: false
     hibernate:
       ddl-auto: none
-  jackson:
+#  jackson:
 #    serialization:
 #      FAIL_ON_EMPTY_BEANS: false
 #      FAIL_ON_UNKNOWN_PROPERTIES: false
-    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy
-    deserialization:
-      fail-on-ignored-properties: false
-      fail-on-unknown-properties: false
+
+#    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy
+#    deserialization:
+#      fail-on-ignored-properties: false
+#      fail-on-unknown-properties: false
 
   #    default-property-inclusion: non_null
   mail:
