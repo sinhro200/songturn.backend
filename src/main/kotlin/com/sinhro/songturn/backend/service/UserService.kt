@@ -17,6 +17,8 @@ import com.sinhro.songturn.rest.model.FullUserInfo
 import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.AuthReqData
 import com.sinhro.songturn.rest.request_response.AuthRespBody
+import com.sinhro.songturn.rest.validation.ValidationResult
+import com.sinhro.songturn.rest.validation.Validator
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -27,6 +29,7 @@ import java.util.*
 
 @Component
 class UserService @Autowired constructor(
+        private val validator: Validator,
         private val passwordEncoder: PasswordEncoder,
         private val userRepository: UserRepository,
         private val jwtAuthProvider: JwtAuthProvider,
@@ -52,10 +55,25 @@ class UserService @Autowired constructor(
         return AuthRespBody(user.toFullUserInfo(), token)
     }
 
-    fun registerUser(
+    fun validateAndRegisterUser(
             registerUserInfo: RegisterUserInfo,
             shouldVerify: Boolean
     ): FullUserInfo {
+        val validationErrors: Map<String, List<ValidationResult>> =
+                validator
+                        .validate(registerUserInfo)
+                        .resultForErrorFields()
+        if (validationErrors.isNotEmpty()) {
+            throw CommonException(
+                    CommonError(
+                            ErrorCodes.REGISTER_FAILED,
+                            "Register failed, fields not correct",
+                            "There is some restrictions on user fields, check extra",
+                            validationErrors
+                    )
+            )
+        }
+
         validateUserInfo(registerUserInfo)
 
         val savedUser = initAndSave(registerUserInfo, !shouldVerify)

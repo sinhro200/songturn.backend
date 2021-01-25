@@ -5,12 +5,9 @@ import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonRequest
 import com.sinhro.songturn.rest.core.CommonResponse
 import com.sinhro.songturn.rest.request_response.RegisterRespBody
-import com.sinhro.songturn.backend.service.EmailSenderService
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.RegisterUserInfo
-import com.sinhro.songturn.rest.validation.Validator
-import com.sinhro.songturn.rest.validation.ValidationResult
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -18,10 +15,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 class RegisterController @Autowired constructor(
-        private val userService: UserService,
-        private val emailSenderService: EmailSenderService,
-        private val confirmationMailBuilder: ConfirmationMailBuilder,
-        private val validator: Validator
+        private val userService: UserService
 
 ) {
 
@@ -34,21 +28,8 @@ class RegisterController @Autowired constructor(
             CommonRequest<RegisterUserInfo>
     ): CommonResponse<RegisterRespBody> {
         registrationRequest.data?.let {
-            val validationErrors: Map<String, List<ValidationResult>> =
-                    validator
-                            .validate(it)
-                            .resultForErrorFields()
-            if (validationErrors.isNotEmpty()) {
-                throw CommonException(
-                        CommonError(
-                                ErrorCodes.REGISTER_FAILED,
-                                "Register failed, fields not correct",
-                                "There is some restrictions on user fields, check extra",
-                                validationErrors
-                        )
-                )
-            }
-            val savedUserPojo = userService.registerUser(
+
+            val savedUserPojo = userService.validateAndRegisterUser(
                     it,
                     shouldConfirm
             )

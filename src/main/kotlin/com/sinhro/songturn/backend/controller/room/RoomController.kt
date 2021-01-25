@@ -119,10 +119,11 @@ class RoomController @Autowired constructor(
     @PostMapping("/playlists")
     fun playlistsInRoom(
             @RequestBody req: CommonRequest<GetPlaylistsReqData>
-    ): CommonResponse<List<PlaylistInfo>> {
+    ): CommonResponse<GetPlaylistsRespBody> {
         req.data?.let { data ->
             return CommonResponse.buildSuccess(
-                    roomAndPlaylistService.roomPlaylists(data.roomToken)
+                    GetPlaylistsRespBody(
+                            roomAndPlaylistService.roomPlaylists(data.roomToken))
             )
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))

@@ -304,16 +304,25 @@ class RoomAndPlaylistService @Autowired constructor(
             savedSong.toPublicSongInfo()
     }
 
-    fun setCurrentPlayingSong(
+    fun checkSongInPlaylistRoom(
             roomToken: String, playlistTitle: String, songId: Int
-    ): PlaylistInfo {
+    ) {
         val room = findRoomByToken(roomToken)
         val playlist = getRoomPlaylist(room, playlistTitle)
-        val user = userService.currentUser()
         val songsInPlaylist = songRepository.songsInPlaylist(playlist.id)
         if (songsInPlaylist.find { it.id == songId } == null)
             throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
                     "Playlist dont contains this song"))
+    }
+
+    fun setCurrentPlayingSong(
+            roomToken: String, playlistTitle: String, songId: Int
+    ): PlaylistInfo {
+        checkSongInPlaylistRoom(roomToken, playlistTitle, songId)
+
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+        val user = userService.currentUser()
 
         val playlistPojo =
                 roomPlaylistRepository.setCurrentPlayingSong(playlist.id, songId)
@@ -348,6 +357,24 @@ class RoomAndPlaylistService @Autowired constructor(
         )
 
         return songPojo?.toPublicSongInfo()
+    }
+
+    fun voteForSong(
+            roomToken: String,
+            playlistTitle: String ,
+            songId: Int ,
+            action: Int
+    ): SongInfo {
+        checkSongInPlaylistRoom(roomToken, playlistTitle, songId)
+
+        val user = userService.currentUser()
+        val votedSongPojo = songRepository.voteForSong(user.id, songId, action)
+                ?: throw CommonException(
+                        CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
+                                "Song not found")
+                )
+
+        return votedSongPojo.toPublicSongInfo()
     }
 
     private fun createEmptyInvite(chars: CharSequence, length: Int): String {

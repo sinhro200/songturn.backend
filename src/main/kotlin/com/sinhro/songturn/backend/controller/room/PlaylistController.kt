@@ -95,4 +95,19 @@ class PlaylistController @Autowired constructor(
         }
         throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
     }
+
+    @PostMapping("/voteforsong")
+    fun voteForSong(
+            @RequestBody reqSet: CommonRequest<VoteForSongReqData>
+    ): CommonResponse<VoteForSongRespBody> {
+        reqSet.data?.let {
+            val updatedPlaylistInfo = roomAndPlaylistService.voteForSong(
+                    it.roomToken, it.playlistTitle, it.songId, it.action
+            )
+            return CommonResponse.buildSuccess(VoteForSongRespBody(
+                    updatedPlaylistInfo
+            ))
+        }
+        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+    }
 }

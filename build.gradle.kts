@@ -116,7 +116,14 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:3.14.6")
 
+//      ### SPRING TESTING
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("junit:junit:4.13")
+    //testImplementation("org.springframework:spring-test:4.3.2.RELEASE")
+    testImplementation("org.springframework:spring-test")
+    testImplementation("com.jayway.jsonpath:json-path:2.2.0")
+    testImplementation("org.hamcrest:hamcrest-library:1.3")
+    testCompileOnly("org.mockito:mockito-core:2.1.0")
 
     implementation(module("com.sinhro.songturn:rest"))
 }
@@ -129,7 +136,9 @@ tasks.withType<KotlinCompile> {
 }
 
 tasks.withType<Test> {
-//    useJUnit()
-    useJUnitPlatform()
+    useJUnit()
+
+    maxHeapSize = "1G"
+//    useJUnitPlatform()
 
 }

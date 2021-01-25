@@ -23,7 +23,7 @@ class ControllerAdvice {
             ex: DataAccessException, request: WebRequest
     ) :ResponseEntity<Any>{
         log.info("Got data access exception in controller advice exception handler. ${ex.toString()}")
-        ex.printStackTrace()
+        log.debug(ex.stackTraceToString())
         return handler(
                 CommonException(CommonError(
                         ErrorCodes.INTERNAL_SERVER_EXC, ex.extractCommonErrorMessage())),
@@ -36,7 +36,7 @@ class ControllerAdvice {
             ex: CommonException, request: WebRequest
     ) :ResponseEntity<Any>{
         log.info("Got common exception in controller advice exception handler. ${ex.toString()}")
-        ex.printStackTrace()
+        log.debug(ex.stackTraceToString())
         return ResponseEntity(
                 CommonResponse.buildError(ex.commonError),
                 getCode(ex.commonError)
@@ -49,7 +49,7 @@ class ControllerAdvice {
         }
 
         private fun getCodeSimple(ce: CommonError): HttpStatus {
-            when (ce.ecode.type) {
+            when (ce.errorCode.type) {
                 ErrorTypes.Unauthorized -> return HttpStatus.UNAUTHORIZED
                 ErrorTypes.Forbidden -> return HttpStatus.FORBIDDEN
                 ErrorTypes.NimuscServer -> return HttpStatus.BAD_REQUEST
