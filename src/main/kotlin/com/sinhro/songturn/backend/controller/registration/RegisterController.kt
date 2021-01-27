@@ -8,6 +8,7 @@ import com.sinhro.songturn.rest.request_response.RegisterRespBody
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.RegisterUserInfo
+import com.sinhro.songturn.rest.request_response.RegisterReqData
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -25,12 +26,12 @@ class RegisterController @Autowired constructor(
     @PostMapping("/register")
     fun registerUser(
             @RequestBody registrationRequest:
-            CommonRequest<RegisterUserInfo>
+            CommonRequest<RegisterReqData>
     ): CommonResponse<RegisterRespBody> {
         registrationRequest.data?.let {
 
             val savedUserPojo = userService.validateAndRegisterUser(
-                    it,
+                    it.userInfo,
                     shouldConfirm
             )
             return CommonResponse.buildSuccess(
