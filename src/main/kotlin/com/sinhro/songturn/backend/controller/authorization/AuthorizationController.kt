@@ -1,13 +1,8 @@
 package com.sinhro.songturn.backend.controller.authorization
-
-import com.sinhro.songturn.rest.ErrorCodes
-import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonRequest
-import com.sinhro.songturn.rest.core.CommonResponse
+q
 import com.sinhro.songturn.rest.request_response.AuthReqData
 import com.sinhro.songturn.rest.request_response.AuthRespBody
 import com.sinhro.songturn.backend.service.UserService
-import com.sinhro.songturn.rest.core.CommonException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -20,15 +15,10 @@ class AuthorizationController @Autowired constructor(
         private val userService: UserService
 ) {
     @PostMapping
-    fun auth(@RequestBody request: CommonRequest<AuthReqData>)
-            : CommonResponse<AuthRespBody> {
-        request.data?.let { req ->
-            val response = userService.authorizeUser(req)
-            return CommonResponse.buildSuccess(response)
-        }
-        throw CommonException(CommonError(
-                ErrorCodes.REQUEST_DATA_EXC,
-                "Empty req data")
-        )
+    fun auth(@RequestBody request: AuthReqData)
+            : AuthRespBody {
+        return userService.authorizeUser(request)
     }
+
+
 }

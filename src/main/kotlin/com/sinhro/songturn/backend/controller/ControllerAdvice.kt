@@ -2,7 +2,6 @@ package com.sinhro.songturn.backend.controller
 
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonResponse
 import com.sinhro.songturn.backend.jooq.extractCommonErrorMessage
 import com.sinhro.songturn.rest.ErrorTypes
 import com.sinhro.songturn.rest.core.CommonException
@@ -38,7 +37,7 @@ class ControllerAdvice {
         log.info("Got common exception in controller advice exception handler. ${ex.toString()}")
         log.debug(ex.stackTraceToString())
         return ResponseEntity(
-                CommonResponse.buildError(ex.commonError),
+                ex.commonError,
                 getCode(ex.commonError)
         )
     }

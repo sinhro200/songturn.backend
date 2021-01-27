@@ -17,9 +17,25 @@ class SongRepository @Autowired constructor(
     private val tableSong = Song.SONG
     private val tableVotedSongs = VotedSongs.VOTED_SONGS
 
-    fun songsInPlaylist(playlistId: Int): MutableList<SongPojo> {
+    fun songsInPlaylistRandomOrder(playlistId: Int): MutableList<SongPojo> {
         return dsl.selectFrom(tableSong)
                 .where(tableSong.PLAYLIST_ID.eq(playlistId))
+                .fetch()
+                .into(SongPojo::class.java)
+    }
+
+    fun songsInPlaylistByOrderedTime(playlistId: Int): MutableList<SongPojo> {
+        return dsl.selectFrom(tableSong)
+                .where(tableSong.PLAYLIST_ID.eq(playlistId))
+                .orderBy(tableSong.ORDERED_AT)
+                .fetch()
+                .into(SongPojo::class.java)
+    }
+
+    fun songsInPlaylistByRatingAndOrderedTime(playlistId: Int): MutableList<SongPojo> {
+        return dsl.selectFrom(tableSong)
+                .where(tableSong.PLAYLIST_ID.eq(playlistId))
+                .orderBy(tableSong.RATING,tableSong.ORDERED_AT)
                 .fetch()
                 .into(SongPojo::class.java)
     }

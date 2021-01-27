@@ -2,7 +2,7 @@ package com.sinhro.songturn.backend.filter
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonResponse
+//import com.sinhro.songturn.rest.core.ResponseBody
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonException
 import org.slf4j.LoggerFactory
@@ -19,17 +19,17 @@ import kotlin.jvm.Throws
 @Component
 class ExceptionHandlerFilter : OncePerRequestFilter() {
 
-    private var log= LoggerFactory.getLogger(ExceptionHandlerFilter::class.java)
+    private var log = LoggerFactory.getLogger(ExceptionHandlerFilter::class.java)
 
     @Throws(ServletException::class, IOException::class)
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
         var errorDTO: Any? = null
         try {
             filterChain.doFilter(request, response)
-        } catch (e: CommonException){
+        } catch (e: CommonException) {
             log.info("Got CommonException in exception Filter. ${e.toString()}")
             e.printStackTrace()
-            errorDTO = CommonResponse.buildError(e.commonError)
+            errorDTO = e.commonError
         }
 
         /*catch (e: JwtAuthProvider.TokenExpiredException) {
@@ -44,9 +44,8 @@ class ExceptionHandlerFilter : OncePerRequestFilter() {
         catch (e: Exception) {
             log.info("Got exception in exception Filter. $e")
             e.printStackTrace()
-            errorDTO = CommonResponse.buildError(
-                    CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
-            )
+            errorDTO = CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
+
         }
         if (errorDTO != null) {
             response.contentType = "application/json"

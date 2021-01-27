@@ -1,11 +1,6 @@
 package com.sinhro.songturn.backend.controller.room
 
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
-import com.sinhro.songturn.rest.ErrorCodes
-import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.core.CommonRequest
-import com.sinhro.songturn.rest.core.CommonResponse
 import com.sinhro.songturn.rest.model.PlaylistInfo
 import com.sinhro.songturn.rest.model.RoomInfo
 import com.sinhro.songturn.rest.model.SongInfo
@@ -20,95 +15,75 @@ class RoomController @Autowired constructor(
 ) {
 
     @GetMapping("/myrooms")
-    fun myRooms(): CommonResponse<MyRoomsRespBody> {
-        return CommonResponse.buildSuccess(MyRoomsRespBody(
+    fun myRooms(): MyRoomsRespBody {
+        return MyRoomsRespBody(
                 roomAndPlaylistService.userRooms()
-        ))
+        )
     }
 
     @PostMapping("/create")
     fun createRoom(
-            @RequestBody req: CommonRequest<CreateRoomReqData>
-    ): CommonResponse<CreateRoomRespBody> {
-        req.data?.let {
-            return CommonResponse.buildSuccess(CreateRoomRespBody(
-                    roomAndPlaylistService.createRoom(it)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: CreateRoomReqData
+    ): CreateRoomRespBody {
+        return CreateRoomRespBody(
+                roomAndPlaylistService.createRoom(data)
+        )
+
     }
 
     @PostMapping("/remove")
     fun removeRoom(
-            @RequestBody req: CommonRequest<RemoveRoomReqData>
-    ): CommonResponse<RemoveRoomRespBody> {
-        req.data?.let {
-            val removedRooms = roomAndPlaylistService.removeRoom(it)
-            return CommonResponse.buildSuccess(RemoveRoomRespBody(
-                    removedRooms.count()
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: RemoveRoomReqData
+    ): RemoveRoomRespBody {
+
+        val removedRooms = roomAndPlaylistService.removeRoom(data)
+        return RemoveRoomRespBody(
+                removedRooms.count()
+        )
     }
 
     @PostMapping("/enter")
     fun enterRoom(
-            @RequestBody req: CommonRequest<EnterRoomReqData>
-    ): CommonResponse<EnterRoomRespBody> {
-        req.data?.let {
-            return CommonResponse.buildSuccess(EnterRoomRespBody(
-                    roomAndPlaylistService.enterRoom(it)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: EnterRoomReqData
+    ): EnterRoomRespBody {
+        return EnterRoomRespBody(
+                roomAndPlaylistService.enterRoom(data)
+        )
     }
 
     @PostMapping("/leave")
     fun leaveRoom(
-            @RequestBody req: CommonRequest<LeaveRoomReqData>
-    ): CommonResponse<LeaveRoomRespBody> {
-        req.data?.let {
-            roomAndPlaylistService.leaveRoom(it)
-            return CommonResponse.buildSuccess(LeaveRoomRespBody())
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: LeaveRoomReqData
+    ): LeaveRoomRespBody {
+        roomAndPlaylistService.leaveRoom(data)
+        return LeaveRoomRespBody()
     }
 
     @PostMapping("/info")
     fun roomInfo(
-            @RequestBody req: CommonRequest<RoomInfoReqData>
-    ): CommonResponse<RoomInfo> {
-        req.data?.let {
+            @RequestBody data: RoomInfoReqData
+    ): RoomInfo {
 
-            return CommonResponse.buildSuccess(
-                    roomAndPlaylistService.roomInfo(it.roomToken)
-            )
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+        return roomAndPlaylistService.roomInfo(data.roomToken)
+
     }
 
     @PostMapping("/whatchanged")
     fun shouldUpdate(
-            @RequestBody req: CommonRequest<WhatShouldUpdateReqData>
-    ): CommonResponse<WhatShouldUpdateRespBody> {
-        req.data?.let {
-            return CommonResponse.buildSuccess(WhatShouldUpdateRespBody(
-                    roomAndPlaylistService.whatShouldUpdate(it)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: WhatShouldUpdateReqData
+    ): WhatShouldUpdateRespBody {
+        return WhatShouldUpdateRespBody(
+                roomAndPlaylistService.whatShouldUpdate(data)
+        )
     }
 
     @PostMapping("/users")
     fun usersInRoom(
-            @RequestBody req: CommonRequest<UsersInRoomReqData>
-    ): CommonResponse<UsersInRoomRespBody> {
-        req.data?.let {
-            return CommonResponse.buildSuccess(UsersInRoomRespBody(
-                    roomAndPlaylistService.getUsersInRoom(it.roomToken)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: UsersInRoomReqData
+    ): UsersInRoomRespBody {
+        return UsersInRoomRespBody(
+                roomAndPlaylistService.getUsersInRoom(data.roomToken)
+        )
     }
 
     @PostMapping("/change")
@@ -118,15 +93,11 @@ class RoomController @Autowired constructor(
 
     @PostMapping("/playlists")
     fun playlistsInRoom(
-            @RequestBody req: CommonRequest<GetPlaylistsReqData>
-    ): CommonResponse<GetPlaylistsRespBody> {
-        req.data?.let { data ->
-            return CommonResponse.buildSuccess(
-                    GetPlaylistsRespBody(
-                            roomAndPlaylistService.roomPlaylists(data.roomToken))
-            )
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: GetPlaylistsReqData
+    ): GetPlaylistsRespBody {
+        return GetPlaylistsRespBody(
+                        roomAndPlaylistService.roomPlaylists(data.roomToken))
+
     }
 
     @PostMapping("/addPlaylist")
@@ -146,25 +117,21 @@ class RoomController @Autowired constructor(
 
     @PostMapping("/fullroominfo")
     fun fullRoomInfo(
-            @RequestBody req: CommonRequest<RoomInfoReqData>
-    ): CommonResponse<FullRoomInfoRespBody> {
-        req.data?.let { roomInfoReqData ->
-            val room: RoomInfo = roomAndPlaylistService.roomInfo(roomInfoReqData.roomToken)
-            val playlists: List<PlaylistInfo> =
-                    roomAndPlaylistService.roomPlaylists(roomInfoReqData.roomToken)
+            @RequestBody roomInfoReqData: RoomInfoReqData
+    ): FullRoomInfoRespBody {
+        val room: RoomInfo = roomAndPlaylistService.roomInfo(roomInfoReqData.roomToken)
+        val playlists: List<PlaylistInfo> =
+                roomAndPlaylistService.roomPlaylists(roomInfoReqData.roomToken)
 
-            val songsInPlaylists = mutableMapOf<Int, List<SongInfo>>()
-            playlists.forEach { playlist ->
-                songsInPlaylists[playlist.id] = roomAndPlaylistService.getSongs(roomInfoReqData.roomToken, playlist.title)
-            }
-            val users = roomAndPlaylistService.getUsersInRoom(roomInfoReqData.roomToken)
-
-            return CommonResponse.buildSuccess(
-                    FullRoomInfoRespBody(
-                            room, users, playlists, songsInPlaylists
-                    )
-            )
+        val songsInPlaylists = mutableMapOf<Int, List<SongInfo>>()
+        playlists.forEach { playlist ->
+            songsInPlaylists[playlist.id] = roomAndPlaylistService.getSongs(roomInfoReqData.roomToken, playlist.title)
         }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+        val users = roomAndPlaylistService.getUsersInRoom(roomInfoReqData.roomToken)
+
+        return FullRoomInfoRespBody(
+                        room, users, playlists, songsInPlaylists
+                )
+
     }
 }

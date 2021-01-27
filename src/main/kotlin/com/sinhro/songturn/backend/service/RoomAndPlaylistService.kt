@@ -260,7 +260,7 @@ class RoomAndPlaylistService @Autowired constructor(
         val room = findRoomByToken(roomToken)
         val playlist = getRoomPlaylist(room, playlistTitle)
 
-        val songPojos = songRepository.songsInPlaylist(playlist.id)
+        val songPojos = songRepository.songsInPlaylistByRatingAndOrderedTime(playlist.id)
         val user = userService.currentUser()
         roomActionRepository.userUpdateAction(
                 user, room,
@@ -305,11 +305,9 @@ class RoomAndPlaylistService @Autowired constructor(
     }
 
     fun checkSongInPlaylistRoom(
-            roomToken: String, playlistTitle: String, songId: Int
+            room: RoomPojo, playlist: PlaylistPojo, songId: Int
     ) {
-        val room = findRoomByToken(roomToken)
-        val playlist = getRoomPlaylist(room, playlistTitle)
-        val songsInPlaylist = songRepository.songsInPlaylist(playlist.id)
+        val songsInPlaylist = songRepository.songsInPlaylistRandomOrder(playlist.id)
         if (songsInPlaylist.find { it.id == songId } == null)
             throw CommonException(CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
                     "Playlist dont contains this song"))
@@ -318,10 +316,11 @@ class RoomAndPlaylistService @Autowired constructor(
     fun setCurrentPlayingSong(
             roomToken: String, playlistTitle: String, songId: Int
     ): PlaylistInfo {
-        checkSongInPlaylistRoom(roomToken, playlistTitle, songId)
-
         val room = findRoomByToken(roomToken)
         val playlist = getRoomPlaylist(room, playlistTitle)
+
+        checkSongInPlaylistRoom(room, playlist, songId)
+
         val user = userService.currentUser()
 
         val playlistPojo =
@@ -361,11 +360,14 @@ class RoomAndPlaylistService @Autowired constructor(
 
     fun voteForSong(
             roomToken: String,
-            playlistTitle: String ,
-            songId: Int ,
+            playlistTitle: String,
+            songId: Int,
             action: Int
     ): SongInfo {
-        checkSongInPlaylistRoom(roomToken, playlistTitle, songId)
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+
+        checkSongInPlaylistRoom(room, playlist, songId)
 
         val user = userService.currentUser()
         val votedSongPojo = songRepository.voteForSong(user.id, songId, action)
@@ -373,6 +375,11 @@ class RoomAndPlaylistService @Autowired constructor(
                         CommonError(ErrorCodes.INTERNAL_SERVER_EXC,
                                 "Song not found")
                 )
+
+        //RoomAction
+        roomActionRepository.userUpdateAction(
+                user, room, RoomActionType.PLAYLIST_SONGS
+        )
 
         return votedSongPojo.toPublicSongInfo()
     }

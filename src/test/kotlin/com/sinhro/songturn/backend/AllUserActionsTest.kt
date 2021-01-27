@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.sinhro.songturn.rest.core.CommonRequest
-import com.sinhro.songturn.rest.core.CommonResponse
 import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.*
 import org.junit.Before
@@ -24,7 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import kotlin.jvm.Throws
 
 @RunWith(SpringJUnit4ClassRunner::class)
-@SpringBootTest(webEnvironment= SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
 class AllUserActionsTest {
     @Autowired
@@ -57,14 +55,14 @@ class AllUserActionsTest {
 
         var PLAYLIST_TITLE = ""
 
-        val req = CommonRequest(data = RegisterUserInfo(
+        val req = RegisterUserInfo(
                 USER_DATA.login,
                 USER_DATA.email,
                 USER_DATA.firstName,
                 USER_DATA.lastName,
                 USER_DATA.nickname,
                 USER_DATA.rawPassword
-        ))
+        )
 
         val mvcResult: MvcResult =
                 mockMvc.perform(
@@ -83,10 +81,10 @@ class AllUserActionsTest {
                         .andReturn()
 
 
-        val authReq = CommonRequest(AuthReqData(
+        val authReq = AuthReqData(
                 USER_DATA.login,
                 USER_DATA.rawPassword
-        ))
+        )
 
         val result = mockMvc.perform(
                 MockMvcRequestBuilders.post("/login")
@@ -103,14 +101,14 @@ class AllUserActionsTest {
                 .andReturn()
 
         println("____________________response = ${result.response.contentAsString}")
-        val resp = objectMapper.readValue<CommonResponse<AuthRespBody>>(result.response.contentAsString)
+        val resp = objectMapper.readValue<AuthRespBody>(result.response.contentAsString)
         println("____________________AuthRespBody = ${resp}")
-        ACCESS_TOKEN = resp.body!!.accessToken
+        ACCESS_TOKEN = resp.accessToken
         println("____________________ACCESS TOKEN = $ACCESS_TOKEN")
         //  ### CREATE ROOM
-        val createRoomReq = CommonRequest(CreateRoomReqData(
+        val createRoomReq = CreateRoomReqData(
                 "AUAT_roomTitle"
-        ))
+        )
 
         val createRoomResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/room/create")
@@ -127,14 +125,14 @@ class AllUserActionsTest {
                                 "$.body.room_info").exists())
                 .andReturn()
 
-        val createRoomResp = objectMapper.readValue<CommonResponse<CreateRoomRespBody>>(
+        val createRoomResp = objectMapper.readValue<CreateRoomRespBody>(
                 createRoomResult.response.contentAsString)
-        ROOM_TOKEN = createRoomResp.body!!.roomInfo.roomToken
+        ROOM_TOKEN = createRoomResp.roomInfo.roomToken
 
         //  ### ROOM PLAYLISTS
-        val roomPlaylistsReq = CommonRequest(GetPlaylistsReqData(
+        val roomPlaylistsReq = GetPlaylistsReqData(
                 ROOM_TOKEN
-        ))
+        )
 
         val roomPlaylistsResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/room/playlists")
@@ -152,17 +150,17 @@ class AllUserActionsTest {
                 .andReturn()
 
         val roomPlaylistsResp = objectMapper.readValue<
-                CommonResponse<GetPlaylistsRespBody>>(
+                GetPlaylistsRespBody>(
                 roomPlaylistsResult.response.contentAsString)
-        val playlist = roomPlaylistsResp.body!!.playlists[0]
+        val playlist = roomPlaylistsResp.playlists[0]
         PLAYLIST_TITLE = playlist.title
 
         //  ### ORDER SONG
 
-        val orderSongReq = CommonRequest(OrderSongReqData(
+        val orderSongReq = OrderSongReqData(
                 ROOM_TOKEN, PLAYLIST_TITLE,
                 "https://vk.com/audio123622163_456240417_1f70e95f58df403368"
-        ))
+        )
 
         val orderSongResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/playlist/ordersong")
@@ -179,15 +177,15 @@ class AllUserActionsTest {
                                 "$.body.song_info").exists())
                 .andReturn()
 
-        val orderSongResp = objectMapper.readValue<CommonResponse<OrderSongRespBody>>(
+        val orderSongResp = objectMapper.readValue<OrderSongRespBody>(
                 orderSongResult.response.contentAsString)
-        val songInfo = orderSongResp.body!!.songInfo
+        val songInfo = orderSongResp.songInfo
         print("Ordered song : $songInfo")
 
         // ### songs in playlist
-        val songsInPlaylistReq = CommonRequest(GetSongsReqData(
+        val songsInPlaylistReq = GetSongsReqData(
                 ROOM_TOKEN, PLAYLIST_TITLE
-        ))
+        )
 
         val songsInPlaylistResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/playlist/getsongs")
@@ -204,16 +202,16 @@ class AllUserActionsTest {
                                 "$.body").exists())
                 .andReturn()
 
-        val songsInPlaylistResp = objectMapper.readValue<CommonResponse<GetSongsRespBody>>(
+        val songsInPlaylistResp = objectMapper.readValue<GetSongsRespBody>(
                 songsInPlaylistResult.response.contentAsString)
-        val songsInPlaylist = songsInPlaylistResp.body!!.songs
+        val songsInPlaylist = songsInPlaylistResp.songs
         print("Songs in playlist : $songsInPlaylist")
 
         //  ###     Vote for song
 
-        val voteForSongReq = CommonRequest(VoteForSongReqData(
+        val voteForSongReq = VoteForSongReqData(
                 ROOM_TOKEN, PLAYLIST_TITLE, songsInPlaylist[0].id, 1
-        ))
+        )
 
         val voteForSongResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/playlist/voteforsong")
@@ -230,9 +228,9 @@ class AllUserActionsTest {
                                 "$.body").exists())
                 .andReturn()
 
-        val voteForSongResp = objectMapper.readValue<CommonResponse<VoteForSongRespBody>>(
+        val voteForSongResp = objectMapper.readValue<VoteForSongRespBody>(
                 voteForSongResult.response.contentAsString)
-        val votedSong = voteForSongResp.body!!.songInfo
+        val votedSong = voteForSongResp.songInfo
         print("Song after vote : $votedSong")
     }
 

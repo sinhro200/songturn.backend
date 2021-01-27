@@ -2,12 +2,11 @@ package com.sinhro.songturn.backend.controller.registration
 
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonRequest
-import com.sinhro.songturn.rest.core.CommonResponse
+//import com.sinhro.songturn.rest.core.CommonRequest
+//import com.sinhro.songturn.rest.core.ResponseBody
 import com.sinhro.songturn.rest.request_response.RegisterRespBody
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.RegisterReqData
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -25,22 +24,16 @@ class RegisterController @Autowired constructor(
 
     @PostMapping("/register")
     fun registerUser(
-            @RequestBody registrationRequest:
-            CommonRequest<RegisterReqData>
-    ): CommonResponse<RegisterRespBody> {
-        registrationRequest.data?.let {
+            @RequestBody registrationRequest: RegisterReqData
+    ): RegisterRespBody {
+        val savedUserPojo = userService.validateAndRegisterUser(
+                registrationRequest.userInfo,
+                shouldConfirm
+        )
+        return RegisterRespBody(
+                        if (shouldConfirm) "We send confirmation to your email" else "Registered successfully"
+                )
 
-            val savedUserPojo = userService.validateAndRegisterUser(
-                    it.userInfo,
-                    shouldConfirm
-            )
-            return CommonResponse.buildSuccess(
-                    RegisterRespBody(
-                            if (shouldConfirm) "We send confirmation to your email" else "Registered successfully"
-                    )
-            )
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Error. Request with empty data"))
     }
 
     @RequestMapping("/confirm-account")

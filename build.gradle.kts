@@ -125,7 +125,7 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest-library:1.3")
     testCompileOnly("org.mockito:mockito-core:2.1.0")
 
-    implementation(module("com.sinhro.songturn:rest"))
+    implementation("com.sinhro.songturn:rest")
 }
 
 tasks.withType<KotlinCompile> {

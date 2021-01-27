@@ -2,11 +2,8 @@ package com.sinhro.songturn.backend.controller.room
 
 import com.sinhro.songturn.backend.extentions.toPublicSongInfo
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
-import com.sinhro.songturn.rest.ErrorCodes
-import com.sinhro.songturn.rest.core.CommonError
-import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.core.CommonRequest
-import com.sinhro.songturn.rest.core.CommonResponse
+//import com.sinhro.songturn.rest.core.CommonRequest
+//import com.sinhro.songturn.rest.core.ResponseBody
 import com.sinhro.songturn.rest.request_response.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.PostMapping
@@ -22,92 +19,79 @@ class PlaylistController @Autowired constructor(
 
     @PostMapping("/wannalisten")
     fun wannaListen(
-            @RequestBody req: CommonRequest<ListenPlaylistReqData>
-    ): CommonResponse<ListenPlaylistRespBody> {
-        req.data?.let { listenPlaylistReqData ->
-            return CommonResponse.buildSuccess(ListenPlaylistRespBody(
-                    roomAndPlaylistService.userWannaListen(listenPlaylistReqData)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody req: ListenPlaylistReqData
+    ): ListenPlaylistRespBody {
+        return ListenPlaylistRespBody(
+                roomAndPlaylistService.userWannaListen(req)
+        )
     }
 
     @PostMapping("/stoplisten")
     fun stopListen(
-            @RequestBody req: CommonRequest<StopListenPlaylistReqData>
-    ): CommonResponse<StopListenPlaylistRespBody> {
-        req.data?.let {
-            return CommonResponse.buildSuccess(StopListenPlaylistRespBody(
-                    roomAndPlaylistService.userDontWantListen(it)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody req: StopListenPlaylistReqData
+    ): StopListenPlaylistRespBody {
+
+        return StopListenPlaylistRespBody(
+                roomAndPlaylistService.userDontWantListen(req)
+        )
+
     }
 
     @PostMapping("/getsongs")
     fun getPlaylistSongs(
-            @RequestBody req: CommonRequest<GetSongsReqData>
-    ): CommonResponse<GetSongsRespBody> {
-        req.data?.let { data ->
-            return CommonResponse.buildSuccess(GetSongsRespBody(
-                    roomAndPlaylistService.getSongs(data.roomToken, data.playlistTitle)
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: GetSongsReqData
+    ): GetSongsRespBody {
+        return GetSongsRespBody(
+                roomAndPlaylistService.getSongs(
+                        data.roomToken, data.playlistTitle)
+        )
+
     }
 
     @PostMapping("/ordersong")
     fun orderSong(
-            @RequestBody req: CommonRequest<OrderSongReqData>
-    ): CommonResponse<OrderSongRespBody> {
-        req.data?.let { data ->
-            val songInfo = roomAndPlaylistService.orderSong(data)
+            @RequestBody data: OrderSongReqData
+    ): OrderSongRespBody {
+        val songInfo = roomAndPlaylistService.orderSong(data)
 
-            return CommonResponse.buildSuccess(OrderSongRespBody(songInfo.toPublicSongInfo()))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+        return OrderSongRespBody(songInfo.toPublicSongInfo())
+
     }
 
     @PostMapping("/setCurrentPlayingSong")
     fun setCurrentPlayingSong(
-            @RequestBody reqSet: CommonRequest<SetCurrentPlayingSongReqData>
-    ): CommonResponse<SetCurrentPlayingSongRespBody> {
-        reqSet.data?.let {
-            val updatedPlaylistInfo = roomAndPlaylistService.setCurrentPlayingSong(
-                    it.roomToken, it.playlistTitle, it.songId
-            )
-            return CommonResponse.buildSuccess(SetCurrentPlayingSongRespBody(updatedPlaylistInfo))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: SetCurrentPlayingSongReqData
+    ): SetCurrentPlayingSongRespBody {
+
+        val updatedPlaylistInfo = roomAndPlaylistService.setCurrentPlayingSong(
+                data.roomToken, data.playlistTitle, data.songId
+        )
+        return SetCurrentPlayingSongRespBody(updatedPlaylistInfo)
     }
 
     @PostMapping("/currentPlayingSong")
     fun currentPlayingSong(
-            @RequestBody reqSet: CommonRequest<CurrentPlayingSongReqData>
-    ): CommonResponse<CurrentPlayingSongRespBody> {
-        reqSet.data?.let {
-            val updatedPlaylistInfo = roomAndPlaylistService.currentPlayingSong(
-                    it.roomToken, it.playlistTitle
-            )
-            return CommonResponse.buildSuccess(CurrentPlayingSongRespBody(
-                    updatedPlaylistInfo
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: CurrentPlayingSongReqData
+    ): CurrentPlayingSongRespBody {
+
+        val updatedPlaylistInfo = roomAndPlaylistService.currentPlayingSong(
+                data.roomToken, data.playlistTitle
+        )
+        return CurrentPlayingSongRespBody(
+                updatedPlaylistInfo
+        )
+
     }
 
     @PostMapping("/voteforsong")
     fun voteForSong(
-            @RequestBody reqSet: CommonRequest<VoteForSongReqData>
-    ): CommonResponse<VoteForSongRespBody> {
-        reqSet.data?.let {
-            val updatedPlaylistInfo = roomAndPlaylistService.voteForSong(
-                    it.roomToken, it.playlistTitle, it.songId, it.action
-            )
-            return CommonResponse.buildSuccess(VoteForSongRespBody(
-                    updatedPlaylistInfo
-            ))
-        }
-        throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC))
+            @RequestBody data: VoteForSongReqData
+    ): VoteForSongRespBody {
+        val updatedPlaylistInfo = roomAndPlaylistService.voteForSong(
+                data.roomToken, data.playlistTitle, data.songId, data.action
+        )
+        return VoteForSongRespBody(
+                updatedPlaylistInfo
+        )
     }
 }
