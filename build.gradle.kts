@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.sinhro.songturn"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 java.sourceCompatibility = JavaVersion.VERSION_11
 
 repositories {
@@ -125,13 +125,15 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest-library:1.3")
     testCompileOnly("org.mockito:mockito-core:2.1.0")
 
-    implementation("com.sinhro.songturn:rest")
+    implementation("com.sinhro.songturn:rest:0.0.1")
+
+//    compile(project(":rest"))
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
 }
 

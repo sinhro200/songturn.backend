@@ -1,11 +1,14 @@
 package com.sinhro.songturn.backend.filter
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.sinhro.songturn.backend.extentions.getHttpStatusCode
 import com.sinhro.songturn.rest.core.CommonError
 //import com.sinhro.songturn.rest.core.ResponseBody
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonException
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 import java.io.IOException
@@ -17,19 +20,22 @@ import kotlin.jvm.Throws
 
 
 @Component
-class ExceptionHandlerFilter : OncePerRequestFilter() {
+class ExceptionHandlerFilter(@Qualifier("objectMapperPrimary") @Autowired
+                             private val mapper: ObjectMapper) : OncePerRequestFilter() {
 
     private var log = LoggerFactory.getLogger(ExceptionHandlerFilter::class.java)
 
     @Throws(ServletException::class, IOException::class)
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
         var errorDTO: Any? = null
+        var status: Int = 400
         try {
             filterChain.doFilter(request, response)
         } catch (e: CommonException) {
             log.info("Got CommonException in exception Filter. ${e.toString()}")
             e.printStackTrace()
             errorDTO = e.commonError
+            status = e.commonError.getHttpStatusCode().value()
         }
 
         /*catch (e: JwtAuthProvider.TokenExpiredException) {
@@ -49,10 +55,11 @@ class ExceptionHandlerFilter : OncePerRequestFilter() {
         }
         if (errorDTO != null) {
             response.contentType = "application/json"
-            val mapper = ObjectMapper()
+            response.status = status
             val out = response.writer
             out.print(mapper.writeValueAsString(errorDTO))
             out.flush()
+//            out.flush()
         }
     }
 }

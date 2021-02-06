@@ -7,6 +7,9 @@ import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.request_response.RegisterRespBody
 import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.core.CommonException
+import com.sinhro.songturn.rest.model.RegisterDemoUserInfo
+import com.sinhro.songturn.rest.request_response.RegisterDemoReqData
+import com.sinhro.songturn.rest.request_response.RegisterDemoRespBody
 import com.sinhro.songturn.rest.request_response.RegisterReqData
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -31,22 +34,33 @@ class RegisterController @Autowired constructor(
                 shouldConfirm
         )
         return RegisterRespBody(
-                        if (shouldConfirm) "We send confirmation to your email" else "Registered successfully"
-                )
+                shouldConfirm,
+                if (shouldConfirm)
+                    "We send confirmation to your email"
+                else
+                    "Registered successfully"
+        )
+    }
 
+    @PostMapping("/registerDemo")
+    fun registerDemoUser(
+            @RequestBody registrationRequest: RegisterDemoReqData
+    ): RegisterDemoRespBody {
+        val accTok = userService.validateAndRegisterUser(
+                registrationRequest.userInfo
+        )
+        return RegisterDemoRespBody(accTok)
     }
 
     @RequestMapping("/confirm-account")
     fun confirmUserAccount(
             @RequestParam("token") confirmationToken: String
     ): ResponseEntity<*>? {
-//        if (confirmationToken.isNullOrEmpty())
-//            throw CommonException(CommonError(ErrorCodes.REQUEST_DATA_EXC, "Confirmation token null or empty"))
 
         try {
-            userService.setVerifiedTrueByConfirmationToken(confirmationToken)?.let {
-                return ResponseEntity.ok("account for user ${it.nickname} verified")
-            }
+            val user = userService.setVerifiedTrueByConfirmationToken(confirmationToken)
+            return ResponseEntity.ok("account for user ${user.nickname} verified")
+
         } catch (ce: CommonException) {
             throw CommonException(
                     CommonError(

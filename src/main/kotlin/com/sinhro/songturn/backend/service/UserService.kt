@@ -14,6 +14,7 @@ import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
 import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.FullUserInfo
+import com.sinhro.songturn.rest.model.RegisterDemoUserInfo
 import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.AuthReqData
 import com.sinhro.songturn.rest.request_response.AuthRespBody
@@ -36,9 +37,6 @@ class UserService @Autowired constructor(
         private val emailSenderService: EmailSenderService,
         private val confirmationMailBuilder: ConfirmationMailBuilder
 ) {
-//    init {
-//        dsl.configuration().set(CustomSQLExceptionTranslator())
-//    }
 
     fun authorizeUser(
             authReqData: AuthReqData
@@ -100,6 +98,35 @@ class UserService @Autowired constructor(
         return savedUser.toFullUserInfo()
     }
 
+    fun validateAndRegisterUser(
+            registerDemoUserInfo: RegisterDemoUserInfo
+    ): String {
+        val validationErrors: Map<String, List<ValidationResult>> =
+                validator
+                        .validate(registerDemoUserInfo)
+                        .resultForErrorFields()
+        if (validationErrors.isNotEmpty()) {
+            throw CommonException(
+                    CommonError(
+                            ErrorCodes.REGISTER_FAILED,
+                            "Register failed, fields not correct",
+                            "There is some restrictions on user fields, check extra",
+                            validationErrors
+                    )
+            )
+        }
+
+        validateUserInfo(registerDemoUserInfo)
+
+        val savedUser = initAndSave(registerDemoUserInfo)
+
+        val token = jwtAuthProvider.generateToken(savedUser.login)
+
+        return token
+
+//        return savedUser.toFullUserInfo()
+    }
+
 
     private fun removeCurrentUser() {
         userRepository.removeUser(currentUser())
@@ -110,6 +137,14 @@ class UserService @Autowired constructor(
                 passwordEncoder,
                 userRepository.defaultRole().id,
                 isVerified
+        )
+
+        return userRepository.saveUser(userPojo)
+    }
+
+    private fun initAndSave(registerDemoUserInfo: RegisterDemoUserInfo): UserPojo {
+        val userPojo = registerDemoUserInfo.toUserPojo(
+                userRepository.defaultRole().id
         )
 
         return userRepository.saveUser(userPojo)
@@ -207,11 +242,21 @@ class UserService @Autowired constructor(
 
     fun validateUserInfo(registerUserInfo: RegisterUserInfo) {
         userRepository.findUserByEmail(registerUserInfo.email)?.let {
-            throw throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
+            throw CommonException(CommonError(ErrorCodes.EMAIL_IS_USED))
         }
 
         userRepository.findUserByLogin(registerUserInfo.login)?.let {
-            throw throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
+            throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
+        }
+    }
+
+    fun validateUserInfo(registerDemoUserInfo: RegisterDemoUserInfo) {
+        userRepository.findUserByLogin(registerDemoUserInfo.login)?.let {
+            throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
+        }
+
+        userRepository.findUserByEmail(registerDemoUserInfo.login)?.let {
+            throw CommonException(CommonError(ErrorCodes.LOGIN_IS_USED))
         }
     }
 
@@ -243,6 +288,12 @@ class UserService @Autowired constructor(
         return authorizedUserPojo ?: throw CommonException(
                 CommonError(ErrorCodes.AUTHORIZATION_FAILED),
                 "Cant get current authenticated user.")
+    }
+
+    fun updateLastOnline(){
+        val user = currentUser()
+        userRepository.updateLastOnline(user)
+
     }
 
 }

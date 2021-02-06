@@ -9,12 +9,13 @@ CREATE TABLE "users" (
     "nickname" TEXT NOT NULL,
     "email" TEXT UNIQUE,           -- NOT NULL
     "login" TEXT NOT NULL UNIQUE,
-    "password" TEXT NOT NULL,
+    "password" TEXT ,               --NOT NULL
     "role_id" INTEGER NOT NULL,
     "first_name" TEXT ,                     -- NOT NULL
     "last_name" TEXT ,                      -- NOT NULL
     "is_verified" BOOLEAN NOT NULL DEFAULT FALSE,
     "room_id" INTEGER,
+    "last_online" TIMESTAMP,
     CONSTRAINT "users_role_id-role_id"
         FOREIGN KEY ("role_id") REFERENCES "role"("id")
             ON DELETE RESTRICT

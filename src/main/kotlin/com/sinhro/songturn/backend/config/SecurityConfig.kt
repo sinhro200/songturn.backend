@@ -36,6 +36,7 @@ class SecurityConfig @Autowired constructor(
                 .antMatchers("/user/*").hasRole("USER")
                 .antMatchers("/login").permitAll()
                 .antMatchers("/register").permitAll()
+                .antMatchers("/registerDemo").permitAll()
                 .antMatchers("/confirm-account").permitAll()
                 .antMatchers("/test/").permitAll()
                 .antMatchers("/test/**").permitAll()

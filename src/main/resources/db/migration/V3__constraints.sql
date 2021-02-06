@@ -1,4 +1,4 @@
-create function user_constraints() returns trigger
+/*create function user_constraints() returns trigger
     language plpgsql AS
 $$
 BEGIN
@@ -26,7 +26,7 @@ CREATE TRIGGER "user_constraints"
     ON "users"
     FOR EACH ROW
 EXECUTE PROCEDURE user_constraints()
-;
+;*/
 
 create function countPlaylists(IN roomId int, IN playlistTitle text) returns int
     language plpgsql as

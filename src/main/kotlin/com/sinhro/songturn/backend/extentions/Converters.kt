@@ -10,13 +10,13 @@ import org.springframework.security.crypto.password.PasswordEncoder
 
 fun UserPojo.toFullUserInfo(): FullUserInfo {
     return FullUserInfo(
-            id, login, email, firstName, lastName, nickname
+            id, login?:"", email?:"", firstName?:"", lastName?:"", nickname?:"", password.isNullOrBlank()
     )
 }
 
 fun UserPojo.toPublicUserInfo(): PublicUserInfo {
     return PublicUserInfo(
-            id, firstName, lastName, nickname
+            id, firstName?:"", lastName?:"", nickname?:""
     )
 }
 
@@ -42,7 +42,27 @@ fun RegisterUserInfo.toUserPojo(
             emptyToNull(firstName),
             emptyToNull(lastName),
             isVerified,
-            roomId
+            roomId,
+            null
+    )
+}
+
+fun RegisterDemoUserInfo.toUserPojo(
+        roleId: Int? = null,
+        roomId: Int? = null
+): UserPojo {
+    return UserPojo(
+            null,
+            nickname,
+            null,
+            login,
+            null,
+            roleId,
+            "",
+            "",
+            true,
+            roomId,
+            null
     )
 }
 

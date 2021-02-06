@@ -1,5 +1,6 @@
 package com.sinhro.songturn.backend.controller
 
+import com.sinhro.songturn.backend.extentions.getHttpStatusCode
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.backend.jooq.extractCommonErrorMessage
@@ -38,29 +39,7 @@ class ControllerAdvice {
         log.debug(ex.stackTraceToString())
         return ResponseEntity(
                 ex.commonError,
-                getCode(ex.commonError)
+                ex.commonError.getHttpStatusCode()
         )
-    }
-
-    companion object {
-        private fun getCode(ce: CommonError): HttpStatus {
-            return getCodeDetailed(ce) ?: getCodeSimple(ce)
-        }
-
-        private fun getCodeSimple(ce: CommonError): HttpStatus {
-            when (ce.errorCode.type) {
-                ErrorTypes.Unauthorized -> return HttpStatus.UNAUTHORIZED
-                ErrorTypes.Forbidden -> return HttpStatus.FORBIDDEN
-                ErrorTypes.NimuscServer -> return HttpStatus.BAD_REQUEST
-                ErrorTypes.NimuscMusicServices -> return HttpStatus.BAD_REQUEST
-                ErrorTypes.Internal -> return HttpStatus.INTERNAL_SERVER_ERROR
-            }
-            return HttpStatus.BAD_REQUEST
-        }
-
-        //ToDo detailed handling
-        private fun getCodeDetailed(ce: CommonError): HttpStatus? {
-            return null
-        }
     }
 }

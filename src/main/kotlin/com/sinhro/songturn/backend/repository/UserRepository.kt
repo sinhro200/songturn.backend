@@ -1,21 +1,20 @@
 package com.sinhro.songturn.backend.repository
 
-import com.sinhro.songturn.rest.ErrorCodes
-import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.backend.jooq.CustomSQLExceptionTranslator
 import com.sinhro.songturn.backend.tables.ConfirmationToken
 import com.sinhro.songturn.backend.tables.Role
 import com.sinhro.songturn.backend.tables.Users
-import com.sinhro.songturn.backend.tables.records.ConfirmationTokenRecord
 import com.sinhro.songturn.backend.tables.records.UsersRecord
-import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
-import com.sinhro.songturn.backend.tables.pojos.ConfirmationToken as ConfirmationTokenPojo
-import com.sinhro.songturn.backend.tables.pojos.Role as RolePojo
+import com.sinhro.songturn.rest.ErrorCodes
+import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
-import kotlin.reflect.KFunction1
+import java.time.LocalDateTime
+import com.sinhro.songturn.backend.tables.pojos.ConfirmationToken as ConfirmationTokenPojo
+import com.sinhro.songturn.backend.tables.pojos.Role as RolePojo
+import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 
 @Component
 class UserRepository @Autowired constructor(
@@ -213,5 +212,30 @@ class UserRepository @Autowired constructor(
         userPojo.roomId?.let(userRecord::setRoomId)
         userPojo.isVerified?.let(userRecord::setIsVerified)
         userRecord.store()
+    }
+
+    fun updateLastOnline(user: UserPojo): UserPojo? {
+        return dsl.update(tableUsers)
+                .set(tableUsers.LAST_ONLINE, LocalDateTime.now())
+                .where(tableUsers.ID.eq(user.id))
+                .returning()
+                .fetchOne()
+                ?.into(UserPojo::class.java)
+    }
+
+    fun removeDemoUsersNotOnlineFrom(dt: LocalDateTime): MutableList<UserPojo> {
+        return dsl.deleteFrom(tableUsers)
+                .where(
+                        tableUsers.LAST_ONLINE.lessThan(dt)
+                                .and(
+                                        tableUsers.PASSWORD.isNull
+//                                                .or(
+//                                                    tableUsers.PASSWORD.like("")
+//                                                )
+                                )
+                )
+                .returning()
+                .fetch()
+                .into(UserPojo::class.java)
     }
 }

@@ -63,9 +63,7 @@ class RoomController @Autowired constructor(
     fun roomInfo(
             @RequestBody data: RoomInfoReqData
     ): RoomInfo {
-
         return roomAndPlaylistService.roomInfo(data.roomToken)
-
     }
 
     @PostMapping("/whatchanged")

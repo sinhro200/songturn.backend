@@ -1,7 +1,7 @@
 package com.sinhro.songturn.backend.filter
 
 import com.sinhro.songturn.backend.providers.JwtAuthProvider
-import com.sinhro.songturn.backend.service.CustomUserDetailsService
+import com.sinhro.songturn.backend.service.UserService
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
@@ -21,7 +21,7 @@ class JwtFilter : GenericFilterBean() {
     private lateinit var jwtAuthProvider: JwtAuthProvider
 
     @Autowired
-    private lateinit var customUserDetailsService: CustomUserDetailsService
+    private lateinit var userService: UserService
 
     override fun doFilter(
             servletRequest: ServletRequest,
@@ -32,8 +32,11 @@ class JwtFilter : GenericFilterBean() {
         tokenFromRequest?.let { token ->
             if (jwtAuthProvider.validateToken(token)) {
                 val userLogin: String = jwtAuthProvider.getLoginFromToken(token)
+                val userPojo = userService.findByLogin(userLogin)
                 val customUserDetails: CustomUserDetails? =
-                        customUserDetailsService.loadUserByUsername(userLogin)
+                        userPojo?.let {
+                            CustomUserDetails.fromUserPojoToCustomUserDetails(it, userService)
+                        }
                 if (customUserDetails == null) {
                     throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
                 } else {
@@ -41,6 +44,7 @@ class JwtFilter : GenericFilterBean() {
                             customUserDetails, null, customUserDetails.authorities
                     )
                     SecurityContextHolder.getContext().authentication = auth
+                    userService.updateLastOnline()
                 }
 
             }

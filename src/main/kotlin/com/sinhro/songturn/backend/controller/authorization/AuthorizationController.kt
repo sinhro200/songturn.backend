@@ -19,6 +19,4 @@ class AuthorizationController @Autowired constructor(
             : AuthRespBody {
         return userService.authorizeUser(request)
     }
-
-
 }
