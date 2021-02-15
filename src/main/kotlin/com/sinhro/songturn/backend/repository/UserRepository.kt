@@ -19,7 +19,7 @@ import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 
 @Component
 class UserRepository @Autowired constructor(
-        val dsl: DSLContext
+        final val dsl: DSLContext
 ) {
     init {
         dsl.configuration().set(CustomSQLExceptionTranslator())
@@ -244,6 +244,15 @@ class UserRepository @Autowired constructor(
 //                                                )
                                 )
                 )
+                .returning()
+                .fetch()
+                .into(UserPojo::class.java)
+    }
+
+    fun leaveUsersFromRoomNotOnlineFrom(dt: OffsetDateTime): MutableList<UserPojo> {
+        return dsl.update(tableUsers)
+                .setNull(tableUsers.ROOM_ID)
+                .where(tableUsers.LAST_ONLINE.lessThan(dt))
                 .returning()
                 .fetch()
                 .into(UserPojo::class.java)

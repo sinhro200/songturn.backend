@@ -39,9 +39,9 @@ class PlaylistController @Autowired constructor(
 
     @PostMapping("/getsongs")
     fun getPlaylistSongs(
-            @RequestBody data: GetSongsReqData
-    ): GetSongsRespBody {
-        return GetSongsRespBody(
+            @RequestBody data: PlaylistSongsReqData
+    ): PlaylistSongsRespBody {
+        return PlaylistSongsRespBody(
                 roomAndPlaylistService.getSongs(
                         data.roomToken, data.playlistTitle)
         )

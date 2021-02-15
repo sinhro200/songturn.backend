@@ -2,6 +2,7 @@ package com.sinhro.songturn.backend.controller.room
 
 import com.sinhro.songturn.backend.service.RoomAndPlaylistService
 import com.sinhro.songturn.rest.model.PlaylistInfo
+import com.sinhro.songturn.rest.model.PlaylistSongs
 import com.sinhro.songturn.rest.model.RoomInfo
 import com.sinhro.songturn.rest.model.SongInfo
 import com.sinhro.songturn.rest.request_response.*
@@ -121,7 +122,7 @@ class RoomController @Autowired constructor(
         val playlists: List<PlaylistInfo> =
                 roomAndPlaylistService.roomPlaylists(roomInfoReqData.roomToken)
 
-        val songsInPlaylists = mutableMapOf<Int, List<SongInfo>>()
+        val songsInPlaylists = mutableMapOf<Int, PlaylistSongs>()
         playlists.forEach { playlist ->
             songsInPlaylists[playlist.id] = roomAndPlaylistService.getSongs(roomInfoReqData.roomToken, playlist.title)
         }

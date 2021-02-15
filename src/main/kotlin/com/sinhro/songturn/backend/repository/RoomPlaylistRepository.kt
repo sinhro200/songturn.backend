@@ -2,10 +2,12 @@ package com.sinhro.songturn.backend.repository
 
 import com.sinhro.songturn.backend.tables.Playlist
 import com.sinhro.songturn.backend.tables.Room
+import com.sinhro.songturn.backend.tables.Song
 import com.sinhro.songturn.backend.tables.records.PlaylistRecord
 import com.sinhro.songturn.backend.tables.records.RoomRecord
 import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
 import com.sinhro.songturn.backend.tables.pojos.Playlist as PlaylistPojo
+import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
@@ -21,6 +23,7 @@ class RoomPlaylistRepository @Autowired constructor(
 
     val tableRoom: Room = Room.ROOM
     val tablePlaylist: Playlist = Playlist.PLAYLIST
+    val tableSong: Song = Song.SONG
 
     fun setListenerId(playlistPojo: PlaylistPojo, userId: Int): PlaylistPojo {
         return dsl.update(tablePlaylist)
@@ -142,6 +145,18 @@ class RoomPlaylistRepository @Autowired constructor(
                 .returning()
                 .fetchOne()
                 ?.into(PlaylistPojo::class.java)
+    }
+
+    fun getCurrentPlayingSong(playlistId: Int): SongPojo? {
+        return dsl.selectFrom(tableSong)
+                .where(tableSong.ID.eq(
+                        dsl.select(tablePlaylist.CURRENT_SONG_ID)
+                                .from(tablePlaylist)
+                                .where(tablePlaylist.ID.eq(playlistId))
+                ))
+                .fetchOne()
+                ?.into(SongPojo::class.java)
+
     }
 
     private fun updatePlaylistRecordFieldsFromPojo(

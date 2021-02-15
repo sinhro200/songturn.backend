@@ -15,7 +15,7 @@ CREATE TABLE "users" (
     "last_name" TEXT ,                      -- NOT NULL
     "is_verified" BOOLEAN NOT NULL DEFAULT FALSE,
     "room_id" INTEGER,
-    "last_online" TIMESTAMP,
+    "last_online" TIMESTAMPTZ,
     CONSTRAINT "users_role_id-role_id"
         FOREIGN KEY ("role_id") REFERENCES "role"("id")
             ON DELETE RESTRICT
@@ -25,7 +25,7 @@ CREATE TABLE "users" (
 CREATE TABLE "confirmation_token" (
     "id" SERIAL PRIMARY KEY,
     "token" TEXT NOT NULL UNIQUE,
-    "created_date" TIMESTAMP NOT NULL,
+    "created_date" TIMESTAMPTZ NOT NULL,
     "user_id" INTEGER NOT NULL,
     CONSTRAINT "confirmation_token_user_id-users_id"
         FOREIGN KEY ("user_id") REFERENCES "users"("id")
@@ -45,7 +45,7 @@ CREATE TABLE "room" (
     "rs_any_can_listen" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "room_owner_id-users_id"
         FOREIGN KEY ("owner_id") REFERENCES "users"("id")
-            ON DELETE RESTRICT
+            ON DELETE CASCADE
             ON UPDATE CASCADE
 );
 
@@ -55,7 +55,7 @@ CREATE TABLE "room_action" (
     "room_id" INTEGER NOT NULL,
     "action_type" INTEGER NOT NULL,
     "is_change_action" BOOLEAN NOT NULL default false,
-    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "timestamp" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     -- PRIMARY KEY(room_id, user_id, action_type, is_room_action)
      CONSTRAINT "room_id-room_id"
         FOREIGN KEY ("room_id") REFERENCES "room"("id")
@@ -63,7 +63,7 @@ CREATE TABLE "room_action" (
             ON UPDATE CASCADE,
     CONSTRAINT "user_id-user_id"
         FOREIGN KEY ("user_id") REFERENCES "users"("id")
-            ON DELETE RESTRICT
+            ON DELETE CASCADE
             ON UPDATE CASCADE
 );
 
@@ -90,12 +90,13 @@ CREATE TABLE "song" (
     "title" TEXT NOT NULL,
     "link" TEXT NOT NULL,
     "duration" INTEGER NOT NULL,
-    "ordered_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "expires_at" TIMESTAMP DEFAULT NULL,
+    "ordered_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expires_at" TIMESTAMPTZ DEFAULT NULL,
     "playlist_id" INTEGER NOT NULL,
     "user_id" INTEGER DEFAULT NULL,
     "rating" INTEGER DEFAULT 0 NOT NULL,
     "link_from_user" TEXT NOT NULL,
+    "in_queue" BOOLEAN DEFAULT TRUE,
     CONSTRAINT "song_playlist_id-playlist_id"
         FOREIGN KEY ("playlist_id") REFERENCES "playlist"("id")
             ON DELETE CASCADE

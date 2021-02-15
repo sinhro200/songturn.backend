@@ -39,7 +39,7 @@ spring:
 logging:
   level:
     root: info
-    web: info
+    web: debug
     sql: info
     org.springframework.security: info
     org.hibernate.SQL: INFO

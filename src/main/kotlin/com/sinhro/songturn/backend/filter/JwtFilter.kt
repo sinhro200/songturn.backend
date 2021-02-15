@@ -33,20 +33,18 @@ class JwtFilter : GenericFilterBean() {
             if (jwtAuthProvider.validateToken(token)) {
                 val userLogin: String = jwtAuthProvider.getLoginFromToken(token)
                 val userPojo = userService.findByLogin(userLogin)
-                val customUserDetails: CustomUserDetails? =
-                        userPojo?.let {
-                            CustomUserDetails.fromUserPojoToCustomUserDetails(it, userService)
-                        }
-                if (customUserDetails == null) {
-                    throw CommonException(CommonError(ErrorCodes.AUTHORIZATION_FAILED))
-                } else {
-                    val auth = UsernamePasswordAuthenticationToken(
-                            customUserDetails, null, customUserDetails.authorities
-                    )
-                    SecurityContextHolder.getContext().authentication = auth
-                    userService.updateLastOnline()
-                }
+                        ?: throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_FOUND))
+                val customUserDetails: CustomUserDetails =
+                        CustomUserDetails.fromUserPojoToCustomUserDetails(userPojo, userService)
 
+
+                val auth = UsernamePasswordAuthenticationToken(
+                        customUserDetails, null, customUserDetails.authorities
+                )
+                SecurityContextHolder.getContext().authentication = auth
+                userService.updateLastOnline()
+            }else{
+                throw CommonException(CommonError(ErrorCodes.AUTH_JWT_INVALID))
             }
         }
 

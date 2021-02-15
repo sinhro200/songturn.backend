@@ -25,7 +25,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import java.lang.Exception
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 @Component
@@ -80,7 +81,7 @@ class UserService @Autowired constructor(
             try {
                 confToken = ConfirmationTokenPojo(
                         null, UUID.randomUUID().toString(),
-                        LocalDateTime.now(), savedUser.id
+                        OffsetDateTime.now(ZoneOffset.UTC), savedUser.id
                 )
                 confToken = userRepository.saveConfirmationToken(confToken)
 
@@ -290,7 +291,12 @@ class UserService @Autowired constructor(
                 "Cant get current authenticated user.")
     }
 
-    fun updateLastOnline(){
+    fun validateUserInRoom(userPojo: UserPojo, roomPojo: RoomPojo) {
+        if (userPojo.roomId != roomPojo.id)
+            throw CommonException(CommonError(ErrorCodes.USER_NOT_IN_ROOM))
+    }
+
+    fun updateLastOnline() {
         val user = currentUser()
         userRepository.updateLastOnline(user)
 

@@ -7,7 +7,7 @@ import io.jsonwebtoken.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.*
 import javax.annotation.PostConstruct
@@ -33,12 +33,10 @@ class JwtAuthProvider {
 
     fun generateToken(login: String): String {
         val date: Date = Date.from(
-                LocalDateTime
-                        .now()
+                OffsetDateTime
+                        .now(ZoneOffset.UTC)
                         .plusDays(expirationDays)
-                        .toInstant(
-                                ZoneOffset.UTC
-                        )
+                        .toInstant()
         )
 
         return Jwts.builder()

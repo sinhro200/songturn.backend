@@ -1,21 +1,17 @@
 package com.sinhro.songturn.backend.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.sinhro.songturn.rest.ErrorCodes
 import com.sinhro.songturn.rest.core.CommonError
 import com.sinhro.songturn.rest.core.CommonException
-import com.sinhro.songturn.rest.model.SongInfo
 import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.stereotype.Component
 import java.time.Duration
-import java.time.LocalDateTime
 
 data class AudioItem(
         val artist: String,
@@ -53,7 +49,7 @@ class NimuscService @Autowired constructor(
             httpUrlBuilder.addQueryParameter("auth", authInfo)
 
 
-        val request = Request.Builder().url(httpUrlBuilder.build()).build();
+        val request = Request.Builder().url(httpUrlBuilder.build()).build()
 
         val call: Call = client.newCall(request)
         val response: Response = call.execute()

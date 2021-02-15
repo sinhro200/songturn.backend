@@ -6,6 +6,7 @@ import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 import com.sinhro.songturn.rest.model.*
 import org.springframework.security.crypto.password.PasswordEncoder
+import java.util.*
 
 
 fun UserPojo.toFullUserInfo(): FullUserInfo {
@@ -74,7 +75,7 @@ fun FullUserInfo.toPublicUserInfo(): PublicUserInfo {
 
 fun PlaylistPojo.toPlaylistInfo(): PlaylistInfo {
     return PlaylistInfo(
-            id, title, description, roomId, currentSongId, listenerId
+            id, title, description, roomId, listenerId
     )
 }
 
@@ -92,7 +93,7 @@ fun RoomPojo.toRoomInfo(): RoomInfo {
 
 fun SongPojo.toFullSongInfo(): SongInfo {
     return SongInfo(
-            id, title, artist, duration, link, expiresAt, userId
+            id, title, artist, duration, link, Date.from(expiresAt.toInstant()) , userId
     )
 }
 

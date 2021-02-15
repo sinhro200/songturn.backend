@@ -24,18 +24,19 @@ class SongRepository @Autowired constructor(
                 .into(SongPojo::class.java)
     }
 
-    fun songsInPlaylistByOrderedTime(playlistId: Int): MutableList<SongPojo> {
+    fun songsNotInQueueByRatingAndOrderedTime(playlistId: Int): MutableList<SongPojo> {
         return dsl.selectFrom(tableSong)
-                .where(tableSong.PLAYLIST_ID.eq(playlistId))
-                .orderBy(tableSong.ORDERED_AT)
+                .where(tableSong.PLAYLIST_ID.eq(playlistId)
+                        .andNot(tableSong.IN_QUEUE))
+                .orderBy(tableSong.RATING, tableSong.ORDERED_AT)
                 .fetch()
                 .into(SongPojo::class.java)
     }
 
-    fun songsInPlaylistByRatingAndOrderedTime(playlistId: Int): MutableList<SongPojo> {
+    fun songsInQueueByRatingAndOrderedTime(playlistId: Int): MutableList<SongPojo> {
         return dsl.selectFrom(tableSong)
-                .where(tableSong.PLAYLIST_ID.eq(playlistId))
-                .orderBy(tableSong.RATING,tableSong.ORDERED_AT)
+                .where(tableSong.PLAYLIST_ID.eq(playlistId).and(tableSong.IN_QUEUE))
+                .orderBy(tableSong.RATING, tableSong.ORDERED_AT)
                 .fetch()
                 .into(SongPojo::class.java)
     }
@@ -62,6 +63,15 @@ class SongRepository @Autowired constructor(
                 ?.into(SongPojo::class.java)
     }
 
+    fun setSongOutOfQueue(songId: Int): SongPojo? {
+        return dsl.update(tableSong)
+                .set(tableSong.IN_QUEUE, false)
+                .where(tableSong.ID.eq(songId))
+                .returning()
+                .fetchOne()
+                ?.into(SongPojo::class.java)
+    }
+
     fun calculateSongRating(
             songId: Int
     ): SongPojo? {
@@ -81,6 +91,11 @@ class SongRepository @Autowired constructor(
             userId: Int, songId: Int,
             act: Int
     ): SongPojo? {
+        val song = getSongById(songId)
+        if (song == null || !song.inQueue)
+            return song
+
+
         val action = sign(act.toDouble()).toInt()
         val votedSongRecord = dsl.selectFrom(tableVotedSongs)
                 .where(tableVotedSongs.USER_ID.eq(userId)
@@ -89,7 +104,7 @@ class SongRepository @Autowired constructor(
 
         if (votedSongRecord != null) {
             if (votedSongRecord.action == action)
-                return getSongById(votedSongRecord.songId)
+                return song
             else {
                 votedSongRecord.action = action
                 votedSongRecord.store()
@@ -105,4 +120,6 @@ class SongRepository @Autowired constructor(
             return calculateSongRating(songId)
         }
     }
+
+
 }
