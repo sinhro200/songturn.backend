@@ -5,12 +5,14 @@ import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.backend.tables.RoomAction
 import com.sinhro.songturn.backend.tables.WhatShouldUpdate
 import com.sinhro.songturn.backend.tables.records.RoomActionRecord
+import com.sinhro.songturn.backend.utils.MINIMUM_OFFSET_DATE_TIME
 import com.sinhro.songturn.rest.model.RoomActionType
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.temporal.TemporalAccessor
 import java.util.stream.Collectors
 
 @Component
@@ -55,7 +57,7 @@ class RoomActionRepository @Autowired constructor(
             dsl.update(tableActions)
                     .set(
                             tableActions.TIMESTAMP,
-                            LocalDateTime.now(ZoneOffset.UTC))
+                            OffsetDateTime.now(ZoneOffset.UTC))
                     .where(tableActions.USER_ID.eq(user.id)
                             .and(tableActions.ROOM_ID.eq(room.id))
                             .and(tableActions.ACTION_TYPE.eq(roomActionType.code))
@@ -73,8 +75,7 @@ class RoomActionRepository @Autowired constructor(
                     .setUserId(userPojo.id)
                     .setRoomId(roomPojo.id)
                     .setActionType(actionType.code)
-                    .setTimestamp(LocalDateTime.of(
-                            1970, 1, 1, 0, 0))
+                    .setTimestamp(MINIMUM_OFFSET_DATE_TIME)
                     .store()
         }
 
@@ -90,7 +91,7 @@ class RoomActionRepository @Autowired constructor(
                     .setRoomId(roomPojo.id)
                     .setActionType(actionType.code)
                     .setIsChangeAction(true)
-                    .setTimestamp(LocalDateTime.now(ZoneOffset.UTC))
+                    .setTimestamp(OffsetDateTime.now(ZoneOffset.UTC))
                     .store()
         }
     }

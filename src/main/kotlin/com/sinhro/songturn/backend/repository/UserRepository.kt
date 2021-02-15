@@ -11,7 +11,8 @@ import com.sinhro.songturn.rest.core.CommonException
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import com.sinhro.songturn.backend.tables.pojos.ConfirmationToken as ConfirmationTokenPojo
 import com.sinhro.songturn.backend.tables.pojos.Role as RolePojo
 import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
@@ -175,6 +176,14 @@ class UserRepository @Autowired constructor(
                 ?.into(UserPojo::class.java)
     }
 
+    fun getRoomInWhichUserIn(userId: Int): Int? {
+        return dsl.select(tableUsers.ROOM_ID)
+                .from(tableUsers)
+                .where(tableUsers.ID.eq(userId))
+                .fetchOne()
+                ?.into(Int::class.java)
+    }
+
     fun setUserNotInRoom(userId: Int): UserPojo? {
         return dsl.update(tableUsers)
                 .setNull(tableUsers.ROOM_ID)
@@ -186,8 +195,9 @@ class UserRepository @Autowired constructor(
 
     fun getUsersInRoom(roomId: Int): List<UserPojo> {
         return dsl.selectFrom(tableUsers)
-                .where(tableUsers.ID.eq(roomId))
+                .where(tableUsers.ROOM_ID.eq(roomId))
                 .fetch()
+
                 .into(UserPojo::class.java)
     }
 
@@ -216,14 +226,14 @@ class UserRepository @Autowired constructor(
 
     fun updateLastOnline(user: UserPojo): UserPojo? {
         return dsl.update(tableUsers)
-                .set(tableUsers.LAST_ONLINE, LocalDateTime.now())
+                .set(tableUsers.LAST_ONLINE, OffsetDateTime.now(ZoneOffset.UTC))
                 .where(tableUsers.ID.eq(user.id))
                 .returning()
                 .fetchOne()
                 ?.into(UserPojo::class.java)
     }
 
-    fun removeDemoUsersNotOnlineFrom(dt: LocalDateTime): MutableList<UserPojo> {
+    fun removeDemoUsersNotOnlineFrom(dt: OffsetDateTime): MutableList<UserPojo> {
         return dsl.deleteFrom(tableUsers)
                 .where(
                         tableUsers.LAST_ONLINE.lessThan(dt)
