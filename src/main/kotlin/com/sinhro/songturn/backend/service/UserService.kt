@@ -128,9 +128,23 @@ class UserService @Autowired constructor(
 //        return savedUser.toFullUserInfo()
     }
 
+    fun userLogout(){
+        val user = currentUser()
+
+        if (isUserDemo(user))
+            removeUser(user)
+        else{
+            setUserOutRoom(user)
+        }
+    }
+
 
     private fun removeCurrentUser() {
-        userRepository.removeUser(currentUser())
+        removeUser(currentUser())
+    }
+
+    private fun removeUser(user:UserPojo) {
+        userRepository.removeUser(user)
     }
 
     private fun initAndSave(registerUserInfo: RegisterUserInfo, isVerified: Boolean): UserPojo {
@@ -176,7 +190,7 @@ class UserService @Autowired constructor(
         )
     }
 
-    fun findByAnyAndCheckPass(
+    private fun findByAnyAndCheckPass(
             anyCred: String,
             pass: String
     ): UserPojo {
@@ -209,7 +223,7 @@ class UserService @Autowired constructor(
         return userRepository.findUserById(id)
     }
 
-    fun isPassCorrect(user: UserPojo, password: String): Boolean {
+    private fun isPassCorrect(user: UserPojo, password: String): Boolean {
         return passwordEncoder.matches(password, user.password)
     }
 
@@ -268,7 +282,7 @@ class UserService @Autowired constructor(
                 )
     }
 
-    fun setUserOutRoom(userPojo: UserPojo, roomPojo: RoomPojo): UserPojo {
+    fun setUserOutRoom(userPojo: UserPojo): UserPojo {
         return userRepository.setUserNotInRoom(userPojo.id)
                 ?: throw CommonException(
                         CommonError(ErrorCodes.INTERNAL_SERVER_EXC)
@@ -299,7 +313,11 @@ class UserService @Autowired constructor(
     fun updateLastOnline() {
         val user = currentUser()
         userRepository.updateLastOnline(user)
-
     }
+
+    fun isUserDemo(userPojo: UserPojo): Boolean {
+        return userPojo.password == null
+    }
+
 
 }

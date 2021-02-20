@@ -18,6 +18,7 @@ data class AudioItem(
         val title: String,
         val url: String,
         val durationSeconds: Int,
+        //через сколько
         val expiresIn: Duration = Duration.ofHours(1)
 )
 

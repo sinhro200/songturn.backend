@@ -45,7 +45,16 @@ class PlaylistController @Autowired constructor(
                 roomAndPlaylistService.getSongs(
                         data.roomToken, data.playlistTitle)
         )
+    }
 
+    @PostMapping("/getsongsvoted")
+    fun getPlaylistSongsVoted(
+            @RequestBody data: PlaylistSongsReqData
+    ): PlaylistSongsVotedRespBody {
+        return PlaylistSongsVotedRespBody(
+                roomAndPlaylistService.getSongsVoted(
+                        data.roomToken, data.playlistTitle)
+        )
     }
 
     @PostMapping("/ordersong")

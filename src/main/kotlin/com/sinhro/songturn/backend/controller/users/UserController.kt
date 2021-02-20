@@ -51,4 +51,9 @@ class UserController @Autowired constructor(
                 "Cant update user data. $authorizedUserPojo"
         )
     }
+
+    @GetMapping("/user/logout")
+    fun logout() {
+        userService.userLogout()
+    }
 }

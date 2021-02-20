@@ -1,14 +1,14 @@
 package com.sinhro.songturn.backend.repository
 
-import com.sinhro.songturn.backend.routines.CalculateSongRating
 import com.sinhro.songturn.backend.tables.Song
 import com.sinhro.songturn.backend.tables.VotedSongs
-import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
-import com.sinhro.songturn.backend.tables.pojos.VotedSongs as VotedSongsPojo
 import org.jooq.DSLContext
+import org.jooq.Record2
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.util.stream.Collectors
 import kotlin.math.sign
+import com.sinhro.songturn.backend.tables.pojos.Song as SongPojo
 
 @Component
 class SongRepository @Autowired constructor(
@@ -36,9 +36,23 @@ class SongRepository @Autowired constructor(
     fun songsInQueueByRatingAndOrderedTime(playlistId: Int): MutableList<SongPojo> {
         return dsl.selectFrom(tableSong)
                 .where(tableSong.PLAYLIST_ID.eq(playlistId).and(tableSong.IN_QUEUE))
-                .orderBy(tableSong.RATING, tableSong.ORDERED_AT)
+                .orderBy(tableSong.RATING.desc(), tableSong.ORDERED_AT)
                 .fetch()
                 .into(SongPojo::class.java)
+    }
+
+    fun getSongVotes(songs: List<SongPojo>, userId: Int): MutableMap<Int, Int> {
+        return dsl.select(tableVotedSongs.SONG_ID, tableVotedSongs.ACTION)
+                .from(tableVotedSongs)
+                .where(tableVotedSongs.USER_ID.eq(userId).and(
+                        tableVotedSongs.SONG_ID.`in`(songs.map { song -> song.id })
+                ))
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        Record2<Int, Int>::component1,
+                        Record2<Int, Int>::component2
+                ))
     }
 
     fun saveSong(song: SongPojo, playlistId: Int): SongPojo {
@@ -51,6 +65,7 @@ class SongRepository @Autowired constructor(
                 .setLinkFromUser(song.linkFromUser)
                 .setUserId(song.userId)
                 .setPlaylistId(playlistId)
+                .setInQueue(song.inQueue)
         songRec.store()
 
         return songRec.into(SongPojo::class.java)

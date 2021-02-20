@@ -205,7 +205,7 @@ class RoomAndPlaylistService @Autowired constructor(
         val room = findRoomByToken(leaveRoomReqData.roomToken)
         val user = userService.currentUser()
 
-        userService.setUserOutRoom(user, room)
+        userService.setUserOutRoom(user)
 
         return room.toRoomInfo()
     }
@@ -299,6 +299,58 @@ class RoomAndPlaylistService @Autowired constructor(
             )
     }
 
+    fun getSongsVoted(
+            roomToken: String,
+            playlistTitle: String
+    ): PlaylistSongsVoted {
+        val room = findRoomByToken(roomToken)
+        val playlist = getRoomPlaylist(room, playlistTitle)
+
+        val user = userService.currentUser()
+
+        val transformator: (SongPojo) -> SongInfo
+        if (room.rsAnyCanListen || playlist.listenerId == user.id)
+            transformator = SongPojo::toFullSongInfo
+        else
+            transformator = SongPojo::toPublicSongInfo
+
+        val songInQueuePojos = songRepository.songsInQueueByRatingAndOrderedTime(playlist.id)
+        val songInQueueVotes = songRepository.getSongVotes(songInQueuePojos,user.id)
+        val votedSongsInQueue = mutableListOf<SongInfoVoted>()
+        songInQueuePojos.forEach {
+            votedSongsInQueue.add(SongInfoVoted(transformator.invoke(it),
+                    songInQueueVotes[it.id]?:0))
+        }
+
+        val songNotInQueuePojos = songRepository.songsNotInQueueByRatingAndOrderedTime(playlist.id)
+        val songNotInQueueVotes = songRepository.getSongVotes(songNotInQueuePojos,user.id)
+        val votedSongsNotInQueue = mutableListOf<SongInfoVoted>()
+        songNotInQueuePojos.forEach {
+            votedSongsNotInQueue.add(SongInfoVoted(transformator.invoke(it),
+                    songNotInQueueVotes[it.id] ?: 0))
+        }
+
+        val currentPlayingSong =
+                roomPlaylistRepository.getCurrentPlayingSong(playlist.id)
+        val currentPlayingSongVoted = currentPlayingSong?.let {
+            val currentPlayingSongVote = songRepository.getSongVotes(listOf(it),user.id)
+            return@let SongInfoVoted(transformator.invoke(it), currentPlayingSongVote[it.id] ?: 0)
+        }
+
+
+
+        roomActionRepository.userUpdateAction(
+                user, room,
+                RoomActionType.PLAYLIST_SONGS
+        )
+
+        return PlaylistSongsVoted(
+                votedSongsNotInQueue,
+                currentPlayingSongVoted,
+                votedSongsInQueue
+        )
+    }
+
 
     fun orderSong(
             orderSongReqData: OrderSongReqData
@@ -318,7 +370,7 @@ class RoomAndPlaylistService @Autowired constructor(
                 audioItem.durationSeconds, null,
                 OffsetDateTime.now(ZoneOffset.UTC).plus(audioItem.expiresIn),
                 playlist.id, user.id, null, orderSongReqData.songLink,
-                false
+                true
         ), playlist.id)
 
         //RoomAction
