@@ -35,6 +35,7 @@ flyway {
 }
 
 jooq {
+
     version.set("3.14.4")  // default (can be omitted)
     edition.set(nu.studer.gradle.jooq.JooqEdition.OSS)  // default (can be omitted)
     configurations {
@@ -58,6 +59,7 @@ jooq {
                     name = "org.jooq.codegen.DefaultGenerator"
                     strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
                     database.apply {
+                        isIncludeIndexes = false
                         inputSchema = dbConfig["schema"]
                         forcedTypes.addAll(arrayOf(
                                 org.jooq.meta.jaxb.ForcedType()
