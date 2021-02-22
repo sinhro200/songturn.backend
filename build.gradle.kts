@@ -18,7 +18,7 @@ repositories {
     mavenCentral()
 }
 
-val jooqDb = mapOf(
+val dbConfig = mapOf(
         "url" to (System.getenv("jdbc.url") ?: "jdbc:postgresql://localhost:5432/songturn"),
         "schema" to (System.getenv("jdbc.schema") ?: "public"),
         "user" to (System.getenv("jdbc.user") ?: "sinhro"),
@@ -27,10 +27,10 @@ val jooqDb = mapOf(
 )
 
 flyway {
-    url = jooqDb["url"]
-    user = jooqDb["user"]
-    password = jooqDb["password"]
-    schemas = arrayOf(jooqDb["schema"])
+    url = dbConfig["url"]
+    user = dbConfig["user"]
+    password = dbConfig["password"]
+    schemas = arrayOf(dbConfig["schema"])
 //    locations = arrayOf("classpath:db/migration")
 }
 
@@ -43,10 +43,10 @@ jooq {
             jooqConfiguration.apply {
                 logging = org.jooq.meta.jaxb.Logging.WARN
                 jdbc.apply {
-                    driver = jooqDb["driver"]
-                    url = jooqDb["url"]
-                    user = jooqDb["user"]
-                    password = jooqDb["password"]
+                    driver = dbConfig["driver"]
+                    url = dbConfig["url"]
+                    user = dbConfig["user"]
+                    password = dbConfig["password"]
 
                     properties.add(
                             org.jooq.meta.jaxb.Property()
@@ -58,7 +58,7 @@ jooq {
                     name = "org.jooq.codegen.DefaultGenerator"
                     strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
                     database.apply {
-                        inputSchema = jooqDb["schema"]
+                        inputSchema = dbConfig["schema"]
                         forcedTypes.addAll(arrayOf(
                                 org.jooq.meta.jaxb.ForcedType()
                                         .withName("varchar")
