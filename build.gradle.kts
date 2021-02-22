@@ -19,11 +19,11 @@ repositories {
 }
 
 val dbConfig = mapOf(
-        "url" to (System.getenv("jdbc.url") ?: "jdbc:postgresql://localhost:5432/songturn"),
-        "schema" to (System.getenv("jdbc.schema") ?: "public"),
-        "user" to (System.getenv("jdbc.user") ?: "sinhro"),
-        "password" to (System.getenv("jdbc.password") ?: "1234"),
-        "driver" to (System.getenv("jdbc.driver") ?: "org.postgresql.Driver")
+        "url" to (System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/songturn"),
+        "schema" to (System.getenv("DATABASE_SCHEMA") ?: "public"),
+        "user" to (System.getenv("DATABASE_USER") ?: "sinhro"),
+        "password" to (System.getenv("DATABASE_PASSWORD") ?: "1234"),
+        "driver" to (System.getenv("DATABASE_DRIVER") ?: "org.postgresql.Driver")
 )
 
 flyway {
