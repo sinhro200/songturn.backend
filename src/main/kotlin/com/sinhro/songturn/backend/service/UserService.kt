@@ -2,6 +2,7 @@ package com.sinhro.songturn.backend.service
 
 import com.sinhro.songturn.backend.controller.registration.ConfirmationMailBuilder
 import com.sinhro.songturn.backend.extentions.toFullUserInfo
+import com.sinhro.songturn.backend.extentions.toPublicUserInfo
 import com.sinhro.songturn.backend.extentions.toUserPojo
 import com.sinhro.songturn.backend.filter.CustomUserDetails
 import com.sinhro.songturn.backend.providers.JwtAuthProvider
@@ -14,12 +15,14 @@ import com.sinhro.songturn.backend.tables.pojos.Room as RoomPojo
 import com.sinhro.songturn.backend.tables.pojos.Users as UserPojo
 import com.sinhro.songturn.rest.core.CommonException
 import com.sinhro.songturn.rest.model.FullUserInfo
+import com.sinhro.songturn.rest.model.PublicUserInfo
 import com.sinhro.songturn.rest.model.RegisterDemoUserInfo
 import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.AuthReqData
 import com.sinhro.songturn.rest.request_response.AuthRespBody
 import com.sinhro.songturn.rest.validation.ValidationResult
 import com.sinhro.songturn.rest.validation.Validator
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -38,6 +41,8 @@ class UserService @Autowired constructor(
         private val emailSenderService: EmailSenderService,
         private val confirmationMailBuilder: ConfirmationMailBuilder
 ) {
+
+    private val log  = LoggerFactory.getLogger(UserService::class.java)
 
     fun authorizeUser(
             authReqData: AuthReqData
@@ -58,6 +63,7 @@ class UserService @Autowired constructor(
             registerUserInfo: RegisterUserInfo,
             shouldVerify: Boolean
     ): FullUserInfo {
+        log.info("Got register user info to validate : $registerUserInfo")
         val validationErrors: Map<String, List<ValidationResult>> =
                 validator
                         .validate(registerUserInfo)
@@ -317,6 +323,12 @@ class UserService @Autowired constructor(
 
     fun isUserDemo(userPojo: UserPojo): Boolean {
         return userPojo.password == null
+    }
+
+    fun removeMe(): PublicUserInfo {
+        return userRepository.removeUser(currentUser())?.toPublicUserInfo()?:throw CommonException(
+                CommonError(ErrorCodes.INTERNAL_SERVER_EXC,"cant remove user")
+        )
     }
 
 

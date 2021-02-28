@@ -1,14 +1,14 @@
 spring:
   datasource:
-    url: ${jdbc.url:jdbc:postgresql://localhost:5432/songturn}
-    username: ${jdbc.username:sinhro}
-    password: ${jdbc.password:1234}
-    driver-class-name: ${jdbc.driver_class_name:org.postgresql.Driver}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: ${DATABASE_DRIVER}
     initialization-mode: always # ???
-  jpa:
-    generate-ddl: false
-    hibernate:
-      ddl-auto: none
+#  jpa:
+#    generate-ddl: false
+#    hibernate:
+#      ddl-auto: none
 #  jackson:
 #    serialization:
 #      FAIL_ON_EMPTY_BEANS: false
@@ -23,8 +23,8 @@ spring:
   mail:
     host: 'smtp.gmail.com'
     port: 587
-    username: ${mail.username}
-    password: ${mail.password}
+    username: ${mail_username}
+    password: ${mail_password}
     properties:
       mail:
         debug: true
@@ -38,13 +38,16 @@ spring:
           writetimeout: 5000
 logging:
   level:
-    root: info
+#    root: debug
     web: debug
     sql: info
     org.springframework.security: info
     org.hibernate.SQL: INFO
+    com.sinhro.songturn.backend:
+      service: debug
+#    com.zaxxer.hikari: debug
+#    org.springframework.jdbc: debug
+#    java: trace
+#    org.apache: trace
 
-    com.sinhro:
-      songturn:
-        backend: info
 

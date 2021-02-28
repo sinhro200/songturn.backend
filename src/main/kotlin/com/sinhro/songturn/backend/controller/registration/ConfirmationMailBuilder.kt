@@ -1,21 +1,25 @@
 package com.sinhro.songturn.backend.controller.registration
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.mail.MailMessage
+import org.springframework.boot.autoconfigure.web.ServerProperties
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.mail.javamail.MimeMessagePreparator
 import org.springframework.stereotype.Component
 import javax.mail.internet.MimeMessage
-import kotlin.jvm.Throws
+
 
 @Component
 class ConfirmationMailBuilder {
     @Value("\${mail-confirmation.address}")
-    private val address: String? = null
+    private lateinit var address: String
 
-    @Value("\${server.port}")
-    private val port: String? = null
+    @Autowired
+    private val serverProperties: ServerProperties? = null
+
+    @Value("\${spring.profiles.active}")
+    private lateinit var activeProfile: String
 
     fun createSimpleConfirmationMail(emailTo: String, confirmationToken: String)
             : SimpleMailMessage {
@@ -23,10 +27,8 @@ class ConfirmationMailBuilder {
         simpleMailMessage.setTo(emailTo)
         simpleMailMessage.setSubject("Complete Registration!")
         simpleMailMessage.setText(
-                "To confirm your account, please click here : "
-                        + "http://" + address
-                        + (if (port.isNullOrBlank()) "" else ":$port")
-                        + "/confirm-account?token=" + confirmationToken
+                "To confirm your account, please click here : " +
+                        serverAddress()  + "/confirm-account?token=" + confirmationToken
         )
         return simpleMailMessage
     }
@@ -41,11 +43,17 @@ class ConfirmationMailBuilder {
                 messageHelper.setSubject("Complete Registration!")
                 messageHelper.setText(
                         "To confirm your account, please click here : "
-                                + "http://" + address
-                                + (if (port.isNullOrBlank()) "" else ":$port")
+                                + serverAddress()
                                 + "/confirm-account?token=" + confirmationToken
                 )
             }
         }
+    }
+
+    private fun serverAddress(): String {
+        return if (activeProfile.contains("local"))
+            "http://$address:${serverProperties?.port}"
+        else
+            address
     }
 }

@@ -32,7 +32,7 @@ class ScheduledTasks @Autowired constructor(
     fun leaveUsersFromRoomWhenNotOnline() {
         val deletedUsers = userRepository.leaveUsersFromRoomNotOnlineFrom(
                 OffsetDateTime.now(ZoneOffset.UTC)
-                        .minusMinutes(30)
+                        .minusHours(2)
         )
         val leftFromRoomUsersString =
                 if (deletedUsers.isEmpty()) "nobody"

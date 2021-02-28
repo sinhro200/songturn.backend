@@ -8,6 +8,12 @@ plugins {
 
     id("nu.studer.jooq") version "5.2"
     id("org.flywaydb.flyway") version "7.2.0"
+
+    application
+}
+
+application {
+    mainClass.set("com.sinhro.songturn.backend.BackendApplication")
 }
 
 group = "com.sinhro.songturn"
@@ -19,11 +25,11 @@ repositories {
 }
 
 val dbConfig = mapOf(
-        "url" to (System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/songturn"),
-        "schema" to (System.getenv("DATABASE_SCHEMA") ?: "public"),
-        "user" to (System.getenv("DATABASE_USER") ?: "sinhro"),
-        "password" to (System.getenv("DATABASE_PASSWORD") ?: "1234"),
-        "driver" to (System.getenv("DATABASE_DRIVER") ?: "org.postgresql.Driver")
+        "url" to (System.getenv("DATABASE_URL")),
+        "schema" to (System.getenv("DATABASE_SCHEMA")),
+        "user" to (System.getenv("DATABASE_USER")),
+        "password" to (System.getenv("DATABASE_PASSWORD")),
+        "driver" to (System.getenv("DATABASE_DRIVER"))
 )
 
 flyway {
@@ -42,18 +48,12 @@ jooq {
         create("main") {  // name of the jOOQ configuration
 //            generateSchemaSourceOnCompilation.set(true)  // default (can be omitted)
             jooqConfiguration.apply {
-                logging = org.jooq.meta.jaxb.Logging.WARN
+                logging = org.jooq.meta.jaxb.Logging.DEBUG
                 jdbc.apply {
                     driver = dbConfig["driver"]
                     url = dbConfig["url"]
                     user = dbConfig["user"]
                     password = dbConfig["password"]
-
-                    properties.add(
-                            org.jooq.meta.jaxb.Property()
-                                    .withKey("ssl")
-                                    .withValue("false")//false
-                    )
                 }
                 generator.apply {
                     name = "org.jooq.codegen.DefaultGenerator"
@@ -71,6 +71,13 @@ jooq {
                                         .withIncludeExpression(".*")
                                         .withIncludeTypes("INET")
                         ).toList())
+                        /*properties.add(org.jooq.meta.jaxb.Property()
+                                .withKey("ssl")
+                                .withValue("false"))
+                        properties.add(org.jooq.meta.jaxb.Property()
+                                .withKey("useSSL")
+                                .withValue("false")
+                        )*/
                     }
                     generate.apply {
                         isDeprecated = false
@@ -127,7 +134,8 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest-library:1.3")
     testCompileOnly("org.mockito:mockito-core:2.1.0")
 
-    implementation("com.sinhro.songturn:rest:0.0.1")
+//    implementation("com.sinhro.songturn:rest:0.0.1")
+    implementation(project(":rest"))
 
 //    compile(project(":rest"))
 }
@@ -135,7 +143,7 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 }
 
@@ -145,4 +153,13 @@ tasks.withType<Test> {
     maxHeapSize = "1G"
 //    useJUnitPlatform()
 
+}
+
+tasks.register<Exec>("publish-heroku") {
+    commandLine(
+            "C:\\Windows\\System32\\wsl.exe",
+                    "heroku container:push web -a songturn",
+                    "&&",
+                    "heroku container:release web -a songturn"
+    )
 }

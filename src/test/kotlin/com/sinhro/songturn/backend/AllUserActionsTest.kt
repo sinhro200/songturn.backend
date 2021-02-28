@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.sinhro.songturn.rest.model.RegisterUserInfo
 import com.sinhro.songturn.rest.request_response.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -22,9 +24,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import kotlin.jvm.Throws
 
 @RunWith(SpringJUnit4ClassRunner::class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 class AllUserActionsTest {
+
+    private val log = LoggerFactory.getLogger(AllUserActionsTest::class.java)
+
     @Autowired
     private lateinit var mockMvc: MockMvc
 
@@ -36,11 +41,14 @@ class AllUserActionsTest {
         objectMapper = ObjectMapper()
                 .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
                 .registerModule(JavaTimeModule())
+                .registerModule(KotlinModule())
     }
 
     @Test
     fun allActionsTest() {
+        log.error("TEST STARTED !")
         val USER_DATA = RegisterUserInfo(
                 "AUAT_login",
                 "AUAT_email@AUAT_email.AUAT_email",
@@ -55,14 +63,14 @@ class AllUserActionsTest {
 
         var PLAYLIST_TITLE = ""
 
-        val req = RegisterUserInfo(
+        val req = RegisterReqData(RegisterUserInfo(
                 USER_DATA.login,
                 USER_DATA.email,
                 USER_DATA.firstName,
                 USER_DATA.lastName,
                 USER_DATA.nickname,
                 USER_DATA.rawPassword
-        )
+        ))
 
         val mvcResult: MvcResult =
                 mockMvc.perform(
@@ -73,10 +81,12 @@ class AllUserActionsTest {
                                         objectMapper.writeValueAsString(req)
                                 )
                 )
-                        .andDo(::print)
+                        .andDo {
+                            log.info(it.toString())
+                        }
                         .andExpect(MockMvcResultMatchers.status().isOk)
                         .andExpect(
-                                MockMvcResultMatchers.jsonPath("$.body.message")
+                                MockMvcResultMatchers.jsonPath("$.message")
                                         .value("Registered successfully"))
                         .andReturn()
 
@@ -97,7 +107,7 @@ class AllUserActionsTest {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(
                         MockMvcResultMatchers.jsonPath(
-                                "$.body.access_token").exists())
+                                "$.access_token").exists())
                 .andReturn()
 
         println("____________________response = ${result.response.contentAsString}")
@@ -122,7 +132,7 @@ class AllUserActionsTest {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(
                         MockMvcResultMatchers.jsonPath(
-                                "$.body.room_info").exists())
+                                "$.room_info").exists())
                 .andReturn()
 
         val createRoomResp = objectMapper.readValue<CreateRoomRespBody>(
@@ -144,9 +154,6 @@ class AllUserActionsTest {
                         ))
                 .andDo(::print)
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(
-                        MockMvcResultMatchers.jsonPath(
-                                "$.body").exists())
                 .andReturn()
 
         val roomPlaylistsResp = objectMapper.readValue<
@@ -174,7 +181,7 @@ class AllUserActionsTest {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(
                         MockMvcResultMatchers.jsonPath(
-                                "$.body.song_info").exists())
+                                "$.song_info").exists())
                 .andReturn()
 
         val orderSongResp = objectMapper.readValue<OrderSongRespBody>(
@@ -183,7 +190,7 @@ class AllUserActionsTest {
         print("Ordered song : $songInfo")
 
         // ### songs in playlist
-        val songsInPlaylistReq = GetSongsReqData(
+        val songsInPlaylistReq = PlaylistSongsReqData(
                 ROOM_TOKEN, PLAYLIST_TITLE
         )
 
@@ -197,20 +204,17 @@ class AllUserActionsTest {
                         ))
                 .andDo(::print)
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(
-                        MockMvcResultMatchers.jsonPath(
-                                "$.body").exists())
                 .andReturn()
 
-        val songsInPlaylistResp = objectMapper.readValue<GetSongsRespBody>(
+        val songsInPlaylistResp = objectMapper.readValue<PlaylistSongsRespBody>(
                 songsInPlaylistResult.response.contentAsString)
-        val songsInPlaylist = songsInPlaylistResp.songs
+        val songsInPlaylist = songsInPlaylistResp.playlistSongs
         print("Songs in playlist : $songsInPlaylist")
 
         //  ###     Vote for song
 
         val voteForSongReq = VoteForSongReqData(
-                ROOM_TOKEN, PLAYLIST_TITLE, songsInPlaylist[0].id, 1
+                ROOM_TOKEN, PLAYLIST_TITLE, songsInPlaylist.songsInQueue[0].id, 1
         )
 
         val voteForSongResult = mockMvc.perform(
@@ -223,15 +227,26 @@ class AllUserActionsTest {
                         ))
                 .andDo(::print)
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(
-                        MockMvcResultMatchers.jsonPath(
-                                "$.body").exists())
                 .andReturn()
 
         val voteForSongResp = objectMapper.readValue<VoteForSongRespBody>(
                 voteForSongResult.response.contentAsString)
         val votedSong = voteForSongResp.songInfo
         print("Song after vote : $votedSong")
-    }
 
+
+//      ###     Remove user
+        val removeUserResult: MvcResult =
+                mockMvc.perform(
+                        MockMvcRequestBuilders.get("/user/removeme")
+                                .header("Authorization", "Bearer $ACCESS_TOKEN")
+                )
+                        .andDo {
+                            log.info(it.toString())
+                        }
+                        .andExpect(MockMvcResultMatchers.status().isOk)
+                        .andReturn()
+
+    }
 }
+

@@ -56,4 +56,9 @@ class UserController @Autowired constructor(
     fun logout() {
         userService.userLogout()
     }
+
+    @GetMapping("/user/removeme")
+    fun removeme() {
+        userService.removeMe()
+    }
 }

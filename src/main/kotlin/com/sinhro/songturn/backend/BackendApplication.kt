@@ -6,8 +6,11 @@ import org.springframework.scheduling.annotation.EnableScheduling
 
 @SpringBootApplication
 @EnableScheduling
-class BackendApplication
-
-fun main(args: Array<String>) {
-	runApplication<BackendApplication>(*args)
+class BackendApplication {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            runApplication<BackendApplication>(*args)
+        }
+    }
 }
