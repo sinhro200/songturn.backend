@@ -31,8 +31,11 @@ class RoomAndPlaylistService @Autowired constructor(
         private val roomActionRepository: RoomActionRepository
 ) {
 
-    @Value("\${room_invite.chars}")
-    private lateinit var invChars: String
+    @Value("\${room_invite.letters}")
+    private lateinit var invLetters: String
+
+    @Value("\${room_invite.numbers}")
+    private lateinit var invNumbers: String
 
     @Value("\${room_invite.length}")
     private var invLength: Int = 6
@@ -315,15 +318,15 @@ class RoomAndPlaylistService @Autowired constructor(
             transformator = SongPojo::toPublicSongInfo
 
         val songInQueuePojos = songRepository.songsInQueueByRatingAndOrderedTime(playlist.id)
-        val songInQueueVotes = songRepository.getSongVotes(songInQueuePojos,user.id)
+        val songInQueueVotes = songRepository.getSongVotes(songInQueuePojos, user.id)
         val votedSongsInQueue = mutableListOf<SongInfoVoted>()
         songInQueuePojos.forEach {
             votedSongsInQueue.add(SongInfoVoted(transformator.invoke(it),
-                    songInQueueVotes[it.id]?:0))
+                    songInQueueVotes[it.id] ?: 0))
         }
 
         val songNotInQueuePojos = songRepository.songsNotInQueueByRatingAndOrderedTime(playlist.id)
-        val songNotInQueueVotes = songRepository.getSongVotes(songNotInQueuePojos,user.id)
+        val songNotInQueueVotes = songRepository.getSongVotes(songNotInQueuePojos, user.id)
         val votedSongsNotInQueue = mutableListOf<SongInfoVoted>()
         songNotInQueuePojos.forEach {
             votedSongsNotInQueue.add(SongInfoVoted(transformator.invoke(it),
@@ -333,7 +336,7 @@ class RoomAndPlaylistService @Autowired constructor(
         val currentPlayingSong =
                 roomPlaylistRepository.getCurrentPlayingSong(playlist.id)
         val currentPlayingSongVoted = currentPlayingSong?.let {
-            val currentPlayingSongVote = songRepository.getSongVotes(listOf(it),user.id)
+            val currentPlayingSongVote = songRepository.getSongVotes(listOf(it), user.id)
             return@let SongInfoVoted(transformator.invoke(it), currentPlayingSongVote[it.id] ?: 0)
         }
 
@@ -469,18 +472,24 @@ class RoomAndPlaylistService @Autowired constructor(
         return votedSongPojo.toPublicSongInfo()
     }
 
-    private fun createEmptyInvite(chars: CharSequence, length: Int): String {
-        var inv: String = randomStringGenerator.generateString(chars, length)
+    private fun createEmptyInvite(letters: CharSequence, numbers: CharSequence, length: Int): String {
+        val length1part = length / 2
+        val length2part = length - length1part
+        var inv1part: String = randomStringGenerator.generateString(letters, length1part)
+        var inv2part: String = randomStringGenerator.generateString(numbers, length2part)
+        var inv = inv1part + inv2part
         var roomEntity = roomPlaylistRepository.findByInvite(inv)
         while (roomEntity != null) {
-            inv = randomStringGenerator.generateString(chars, length)
+            inv1part = randomStringGenerator.generateString(letters, length1part)
+            inv2part = randomStringGenerator.generateString(numbers, length2part)
+            inv = inv1part + inv2part
             roomEntity = roomPlaylistRepository.findByInvite(inv)
         }
         return inv
     }
 
     private fun createDefaultEmptyInvite(): String {
-        return createEmptyInvite(invChars, invLength)
+        return createEmptyInvite(invLetters, invNumbers, invLength)
     }
 
     private fun defaultPlaylistName(roomTitle: String): String {

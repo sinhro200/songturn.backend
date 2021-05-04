@@ -17,7 +17,7 @@ application {
 }
 
 group = "com.sinhro.songturn"
-version = "0.0.1"
+version = "1.0.2"
 java.sourceCompatibility = JavaVersion.VERSION_11
 
 repositories {
