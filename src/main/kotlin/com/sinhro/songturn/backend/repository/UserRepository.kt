@@ -252,7 +252,8 @@ class UserRepository @Autowired constructor(
     fun leaveUsersFromRoomNotOnlineFrom(dt: OffsetDateTime): MutableList<UserPojo> {
         return dsl.update(tableUsers)
                 .setNull(tableUsers.ROOM_ID)
-                .where(tableUsers.LAST_ONLINE.lessThan(dt))
+                .where(tableUsers.LAST_ONLINE.lessThan(dt)
+                        .and(tableUsers.ROOM_ID.isNotNull))
                 .returning()
                 .fetch()
                 .into(UserPojo::class.java)
