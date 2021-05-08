@@ -31,8 +31,8 @@ class JwtFilter : GenericFilterBean() {
         val tokenFromRequest = getTokenFromRequest(servletRequest as HttpServletRequest)
         tokenFromRequest?.let { token ->
             if (jwtAuthProvider.validateToken(token)) {
-                val userLogin: String = jwtAuthProvider.getLoginFromToken(token)
-                val userPojo = userService.findByLogin(userLogin)
+                val userId: Int = jwtAuthProvider.getIdFromToken(token)
+                val userPojo = userService.findById(userId)
                         ?: throw CommonException(CommonError(ErrorCodes.AUTH_USER_NOT_FOUND))
                 val customUserDetails: CustomUserDetails =
                         CustomUserDetails.fromUserPojoToCustomUserDetails(userPojo, userService)

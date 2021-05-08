@@ -54,7 +54,7 @@ class UserService @Autowired constructor(
                     ErrorCodes.AUTH_USER_NOT_VERIFIED,
                     "User not verified")
             )
-        val token = jwtAuthProvider.generateToken(user.login)
+        val token = jwtAuthProvider.generateToken(user.id)
 
         return AuthRespBody(user.toFullUserInfo(), token)
     }
@@ -127,7 +127,7 @@ class UserService @Autowired constructor(
 
         val savedUser = initAndSave(registerDemoUserInfo)
 
-        val token = jwtAuthProvider.generateToken(savedUser.login)
+        val token = jwtAuthProvider.generateToken(savedUser.id)
 
         return token
 

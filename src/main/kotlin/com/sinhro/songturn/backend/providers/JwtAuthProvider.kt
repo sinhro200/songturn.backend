@@ -31,7 +31,7 @@ class JwtAuthProvider {
         secretKey = generateSecretKey()
     }
 
-    fun generateToken(login: String): String {
+    fun generateToken(id: Int): String {
         val date: Date = Date.from(
                 OffsetDateTime
                         .now(ZoneOffset.UTC)
@@ -40,7 +40,7 @@ class JwtAuthProvider {
         )
 
         return Jwts.builder()
-                .setSubject(login)
+                .setSubject(id.toString())
                 .setExpiration(date)
                 .signWith(secretKey)
                 .compact()
@@ -73,14 +73,14 @@ class JwtAuthProvider {
         }
     }
 
-    fun getLoginFromToken(token: String?): String {
+    fun getIdFromToken(token: String?): Int {
         val claims: Claims = Jwts
                 .parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .body
-        return claims.subject
+        return claims.subject.toInt()
     }
 
     private fun generateSecretKey(): SecretKey {
